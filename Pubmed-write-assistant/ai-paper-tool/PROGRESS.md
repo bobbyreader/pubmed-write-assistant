@@ -16,7 +16,9 @@
 ## 已完成功能
 
 ### 1. SearchService — 学术论文搜索
-- **语义 Scholar API** (primary)：直接 httpx 调用，支持 `SEMANTICSCHOLAR_API_KEY`
+- **OpenAlex API** (primary)：free, no API key, full abstracts with inverted_index reconstruction
+  - Valid select fields: id,doi,title,authorships,publication_year,abstract_inverted_index,primary_location,open_access
+  - Filter syntax: `publication_year:YYYY-YYYY` (range) or `publication_year:>Y` / `publication_year:<Y`
 - **PubMed E-utilities** (fallback)：429/错误时自动降级，Google Translate 中文→英文
 - **SSL 修复**：所有 httpx Client 添加 `verify=False`，解决 macOS SSL EOF 问题
 - **搜索过滤器**：年份范围、作者、期刊名称、论文数量（5-50）
@@ -63,7 +65,7 @@
 │ LLMService   │ RAGService   │ CitationService  │
 │ (MiniMax)    │ (Context)    │ (Reference Mgmt)│
 ├──────────────┴──────────────┴──────────────────┤
-│  SearchService (SS primary + PubMed fallback)   │
+│  SearchService (OpenAlex primary + PubMed fallback)   │
 └─────────────────────────────────────────────────┘
 ```
 
@@ -105,7 +107,7 @@
 
 ## 已知限制
 
-- **SS API**: 免费 IP 限速 (429)，依赖 PubMed fallback
+- **OpenAlex rate limits**: polite pool可用，短期内大量请求可能触发429（会fallback到PubMed）
 - **Reviewer R3**: 草稿很大时可能 JSON 截断（8192 tokens 不够），但 R2 的 hallucination 反馈已能修正主要问题
 - **论文内容**: 建议用户根据实际情况修改 Methods 部分（检索策略描述为 AI 生成，可能需按真实检索行为调整）
 
@@ -128,6 +130,10 @@ streamlit run app.py --server.headless true --server.port 8501
   - Vancouver 引用风格
 - [x] ~~Search Filters~~ ✅ (2026-04-12)
   - 年份范围、作者、期刊名称、数量
+- [x] ~~OpenAlex集成~~ ✅ (2026-04-13)
+  - 替代被IP封锁的Semantic Scholar
+  - 全字段抽象、作者、期刊元数据
+  - 年份过滤器(范围/从/到)
 - [x] ~~Word/PDF 导出修复~~ ✅ (2026-04-12)
   - 中文字体 (STHeiti)
   - 表格渲染
