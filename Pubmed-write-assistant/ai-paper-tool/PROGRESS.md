@@ -1,44 +1,51 @@
 # AI科研论文生成系统 — 项目进度
 
-> 最后更新：2026-04-12 13:30
+> 最后更新：2026-04-12 22:30
 
 ## 当前状态
 
-**核心功能全部验证通过 ✅**
+**医学期刊格式验证通过 ✅ | Word/PDF 导出正常 ✅**
 
 - Streamlit App 运行中：http://localhost:8501
-- Test 1 (Search): ✅ PubMed fallback，3s返回
-- Test 2 (LLM): ✅ MiniMax直调，thinking控制
-- Test 3 (Pipeline): ✅ Outline + Introduction输出
+- 搜索：PubMed fallback，SSL 已修复
+- 流水线：Writer → Review(×3) → Editor，医学期刊格式
+- 导出：Markdown ✅ Word ✅ PDF ✅
 
 ---
 
 ## 已完成功能
 
 ### 1. SearchService — 学术论文搜索
-- **语义 Scholar API** (primary)：直接 httpx 调用，支持 `SEMANTICSCHOLAR_API_KEY`（通过 `x-api-key` header 认证，突破 IP 级别限速）
-- **PubMed E-utilities** (fallback)：429/错误时自动降级
-- **timeout**: 15s 硬限制
-- **文件**: `backend/services/search_service.py`
+- **语义 Scholar API** (primary)：直接 httpx 调用，支持 `SEMANTICSCHOLAR_API_KEY`
+- **PubMed E-utilities** (fallback)：429/错误时自动降级，Google Translate 中文→英文
+- **SSL 修复**：所有 httpx Client 添加 `verify=False`，解决 macOS SSL EOF 问题
+- **搜索过滤器**：年份范围、作者、期刊名称、论文数量（5-50）
+- **timeout**: 15s
 
-### 2. LLMService — MiniMax M2.7-highspeed 调用
-- **直接 httpx** 调用，绕过 anthropic SDK 兼容性问题
-- **thinking 控制**: `"thinking": {"type": "disabled"}`
-- **max_tokens 默认 4096**：MiniMax 复杂任务生成超长 thinking，需足够 token budget
-- **base_url**: `https://v2.aicodee.com` (aicodee 代理)
-- **文件**: `backend/services/llm_service.py`
+### 2. LLMService — MiniMax M2.7 调用
+- **timeout**: 180s（适应大输入 + 长输出）
+- **thinking**: `"thinking": {"type": "disabled"}`
+- `base_url`: `https://v2.aicodee.com/v1/messages`
 
-### 3. WriterAgent — 论文生成
-- 多 Agent 架构：Researcher → Writer → Reviewer → Editor
-- 反幻觉引用：只使用 citation_map 中的真实论文
-- JSON 解析：处理 LLM 返回的 markdown fence 包装
-- **文件**: `agents/writer.py`, `agents/base_agent.py`
+### 3. 医学期刊格式 (IMRaD)
+- **Abstract**：结构化（BACKGROUND/OBJECTIVE/METHODS/RESULTS/CONCLUSION）
+- **Introduction**：背景→研究空白→目标
+- **Methods**：Study Design / Participants / Outcome Measures / Statistical Analysis
+- **Results**：统计报告（effect size + 95% CI + p-values）
+- **Discussion**：6 部分结构（Summary / Interpretation / Comparison / Limitations / Clinical Implications / Conclusion）
+- **Conclusion**：150-250 词
+- **引文格式**：Vancouver（方括号数字）
+- **Related Work**：已移除（整合到 Introduction/Discussion）
 
-### 4. Streamlit UI — 交互界面
-- Test 1: 论文搜索
-- Test 2: LLM API 调用
-- Test 3: Mini Pipeline (Search + Write)
-- Settings: API 配置页
+### 4. 多 Agent 流水线
+- Researcher → Writer → Reviewer(×3) → Editor
+- Hallucination 检测：Reviewer 发现引用问题，Editor 修正
+- Anti-hallucination 规则：禁止"相关数据"占位符，禁止引用错配
+
+### 5. 导出服务
+- **Word** (`export_word`): python-docx，含表格渲染
+- **PDF** (`export_pdf`): reportlab + STHeiti 中文字体，含表格渲染
+- **Markdown**: 原始文本下载
 
 ---
 
@@ -48,53 +55,59 @@
 ┌─────────────────────────────────────────────────┐
 │                   Streamlit UI                    │
 ├─────────────────────────────────────────────────┤
-│  Test 1 Search  │ Test 2 LLM  │ Test 3 Pipeline │
+│  Generate Paper │ Search Filters │ Settings     │
 ├─────────────────────────────────────────────────┤
-│              WritingPipeline                       │
-│  Researcher → Writer → Reviewer → Editor          │
-├──────────────┬──────────────┬────────────────────┤
-│ LLMService   │ RAGService  │ CitationService    │
-│ (MiniMax)    │ (Context)   │ (Reference Mgmt)   │
-├──────────────┴──────────────┴────────────────────┤
-│     SearchService (SS primary + PubMed fallback)   │
+│              WritingPipeline                      │
+│  Researcher → Writer → Reviewer(×3) → Editor    │
+├──────────────┬──────────────┬──────────────────┤
+│ LLMService   │ RAGService   │ CitationService  │
+│ (MiniMax)    │ (Context)    │ (Reference Mgmt)│
+├──────────────┴──────────────┴──────────────────┤
+│  SearchService (SS primary + PubMed fallback)   │
 └─────────────────────────────────────────────────┘
 ```
 
 ---
 
+## Agent max_tokens 配置
+
+| Agent | max_tokens | 说明 |
+|-------|-----------|------|
+| Writer | 16384 | 6 大章节 + 50 篇摘要输入 |
+| Reviewer | 8192 | 长草稿 + citation_map + abstracts |
+| Editor | 8192 | 长草稿 + reviewer feedback |
+
+---
+
 ## 关键经验教训
 
-### 1. semanticscholar 库 timeout 无效
-**问题**: 库内部 httpx 调用有 10 次指数退避 retry，timeout 参数无法中断
-**解法**: 移除库依赖，httpx 直调 API
+### 1. SSL EOF 导致 PubMed/SS 请求失败
+**问题**: macOS 上 httpx 默认 SSL 验证对某些 API 证书失败，`EOF occurred in violation of protocol`
+**解法**: 所有 `httpx.Client()` 添加 `verify=False`
 
-### 2. dotenv 不覆盖 shell 环境变量
-**问题**: `load_dotenv()` 默认不覆盖已存在的 `os.environ` 变量
-**解法**: 全部改为 `load_dotenv(override=True)`
+### 2. MiniMax thinking 吞 token
+**问题**: 复杂 prompt 生成超长 thinking，导致 JSON 截断
+**解法**: max_tokens 逐步调高（Writer→16384，Reviewer/Editor→8192），timeout→180s
 
-### 3. MiniMax thinking 吞 token
-**问题**: `thinking: {"type": "disabled"}` 在复杂输入下仍生成超长 thinking
-**解法**: `max_tokens` 设为 4096+，确保 text block 有足够空间
+### 3. ReportLab RGBColor vs python-docx RGBColor
+**问题**: 两个库都有 `RGBColor`，但参数范围不同（docx: 0-255, reportlab: 0-1）
+**解法**: ReportLab table 用 `HexColor('#hexstr')`，不用 `RGBColor`
 
-### 4. Streamlit 长任务 UI
-**问题**: `st.spinner()` 内同步阻塞 → UI 无响应 → spinner 卡住
-**解法**:
-- 按钮点击 → `generating=True` + `st.rerun()`
-- rerun 后 → 显示静态提示 + 同步执行 pipeline
-- 执行完 → 写入 `dry_result` + `st.rerun()` 显示结果
-- 关键：pipeline 执行块里**不能用 st.rerun()**，否则中断
+### 4. Medical journal JSON schema 遵循
+**问题**: LLM 返回非预期 JSON 结构（嵌套对象、多余字段）
+**解法**: OUTPUT FORMAT 前置 + 示例 + 字段类型约束
 
-### 5. WriterAgent JSON 解析失败
-**问题**: LLM 返回 markdown 代码块（` ```json ... ``` `）包裹 JSON
-**解法**: `parse_response()` 先去除 markdown fence 再 `json.loads()`
+### 5. Streamlit 长任务 UI
+**问题**: `st.spinner()` 同步阻塞
+**解法**: 按钮 → `generating=True` + `st.rerun()` → 后台执行 → 结果写入 → `st.rerun()`
 
 ---
 
 ## 已知限制
 
-- **Semantic Scholar API**: 免费 IP 限速 (429)，需 API key 或依赖 PubMed fallback
-- **MiniMax thinking**: 复杂 prompt 生成超长 thinking，响应时间 30-40s
-- **API Key**: `.env` 文件管理，需在 Settings 页面配置
+- **SS API**: 免费 IP 限速 (429)，依赖 PubMed fallback
+- **Reviewer R3**: 草稿很大时可能 JSON 截断（8192 tokens 不够），但 R2 的 hallucination 反馈已能修正主要问题
+- **论文内容**: 建议用户根据实际情况修改 Methods 部分（检索策略描述为 AI 生成，可能需按真实检索行为调整）
 
 ---
 
@@ -109,17 +122,14 @@ streamlit run app.py --server.headless true --server.port 8501
 
 ## 下一步
 
-- [x] ~~Add Semantic Scholar API Key 以提升搜索质量~~ ✅ (2026-04-12)
-- [x] ~~Add full paper export (Word/PDF)~~ ✅ (2026-04-12)
-  - **Word**: `python-docx`，支持标题层级、段落格式化
-  - **PDF**: `reportlab`（纯 Python，无需系统依赖），支持 A4 排版、居中对齐
-  - **导出服务**: `utils/export_service.py`
-  - Markdown 下载按钮保留，三个格式并列
-
-
-- [x] ~~Add real-time streaming progress feedback~~ ✅ (2026-04-12)
-  - 后台线程执行 Pipeline，Queue 推送进度到主线程
-  - st.rerun() 轮询消费 Queue，实时显示 phase icon + message + progress bar
-  - Pipeline 各阶段（research → write → review → edit → finalize）都有进度更新
-
+- [x] ~~医学期刊格式改进~~ ✅ (2026-04-12)
+  - Structured Abstract (BACKGROUND/OBJECTIVE/METHODS/RESULTS/CONCLUSION)
+  - Methods / Results / Discussion 6-part 结构
+  - Vancouver 引用风格
+- [x] ~~Search Filters~~ ✅ (2026-04-12)
+  - 年份范围、作者、期刊名称、数量
+- [x] ~~Word/PDF 导出修复~~ ✅ (2026-04-12)
+  - 中文字体 (STHeiti)
+  - 表格渲染
+  - RGBColor 混用问题
 - [ ] 部署到云端
