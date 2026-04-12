@@ -1,14 +1,8 @@
-# Core LLM
-anthropic>=0.40.0
-
-# Academic Search
-semanticscholar>=0.12.0
-
 # Web Framework
 streamlit>=1.40.0
 
 # HTTP Client
-requests>=2.32.0
+httpx>=0.28.0
 
 # Environment
 python-dotenv>=1.0.0
@@ -18,3 +12,7 @@ orjson>=3.10.0
 
 # Retry logic
 tenacity>=9.0.0
+
+# Export
+python-docx>=1.1.0
+reportlab>=4.0.0

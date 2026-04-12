@@ -14,7 +14,7 @@ from tenacity import retry, stop_after_attempt, wait_exponential
 logger = logging.getLogger(__name__)
 load_dotenv(override=True)
 
-DEFAULT_TIMEOUT = 60
+DEFAULT_TIMEOUT = 180
 
 
 class LLMService:
@@ -106,6 +106,7 @@ class LLMService:
             "model": model,
             "max_tokens": max_tokens,
             "temperature": temperature,
+            "thinking": {"type": "disabled"},
             "system": system_prompt,
             "messages": [{"role": "user", "content": user_prompt}],
             "stream": True,

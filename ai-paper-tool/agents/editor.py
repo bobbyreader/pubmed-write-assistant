@@ -5,7 +5,7 @@ Editor Agent — revises drafts based on reviewer feedback.
 import json
 import logging
 import re
-from typing import Any
+from typing import Any, Optional
 
 from agents.base_agent import AgentConfig, AgentResponse, BaseAgent
 from backend.services.llm_service import LLMService
@@ -21,7 +21,7 @@ class EditorAgent(BaseAgent):
         super().__init__(
             config=AgentConfig(
                 system_prompt=EDITOR_SYSTEM_PROMPT,
-                max_tokens=4096,
+                max_tokens=8192,
                 temperature=0.4,
             ),
             llm_service=llm_service,
@@ -39,7 +39,6 @@ class EditorAgent(BaseAgent):
         abstracts_context: str,
     ) -> str:
         citation_map_str = self._format_citation_map(citation_map)
-        # Serialize reviewer feedback as formatted string
         feedback_str = json.dumps(reviewer_feedback, indent=2, ensure_ascii=False)
         return EDITOR_USER_PROMPT.format(
             topic=topic,
@@ -49,18 +48,34 @@ class EditorAgent(BaseAgent):
             abstracts_context=abstracts_context,
         )
 
-    def parse_response(self, raw_text: str) -> dict[str, Any]:
-        """Parse JSON editor output."""
+    def parse_response(self, raw_text: str) -> Optional[dict[str, Any]]:
+        """Parse JSON editor output with markdown fence removal and truncation repair."""
         text = raw_text.strip()
         if text.startswith("```"):
             text = re.sub(r"^```json?\s*", "", text)
             text = re.sub(r"\s*```$", "", text)
-        data = json.loads(text)
+        try:
+            data = json.loads(text)
+        except json.JSONDecodeError:
+            logger.warning(f"Editor JSON parse failed, attempting repair. Raw[:200]: {raw_text[:200]!r}")
+            data = self._try_repair_json(text)
+            if data is None:
+                return None
         return {
             "revised_draft": data.get("revised_draft", ""),
             "changes_made": data.get("changes_made", []),
             "unresolved_issues": data.get("unresolved_issues", []),
         }
+
+    def _try_repair_json(self, text: str) -> Optional[dict]:
+        """Attempt to repair truncated JSON by closing open structures."""
+        for suffix in ["}", "]", "}]", "}]}", "}]})", "}]})}]}"]:
+            try:
+                return json.loads(text + suffix)
+            except json.JSONDecodeError:
+                continue
+        logger.warning("Could not repair JSON in EditorAgent")
+        return None
 
     def run(
         self,

@@ -21,7 +21,7 @@ class ReviewerAgent(BaseAgent):
         super().__init__(
             config=AgentConfig(
                 system_prompt=REVIEWER_SYSTEM_PROMPT,
-                max_tokens=2048,
+                max_tokens=8192,
                 temperature=0.3,
             ),
             llm_service=llm_service,
@@ -46,22 +46,55 @@ class ReviewerAgent(BaseAgent):
         )
 
     def parse_response(self, raw_text: str) -> dict[str, Any]:
-        """Parse JSON review output."""
-        # Strip markdown code fences if present
+        """Parse JSON review output with markdown fence removal and truncation repair."""
         text = raw_text.strip()
         if text.startswith("```"):
             text = re.sub(r"^```json?\s*", "", text)
             text = re.sub(r"\s*```$", "", text)
-        data = json.loads(text)
+
+        # Attempt repair if JSON is truncated
+        try:
+            data = json.loads(text)
+        except json.JSONDecodeError:
+            # Try to fix truncated JSON (unclosed strings/arrays)
+            data = self._try_repair_json(text)
+
         return {
             "summary": data.get("summary", ""),
             "score": data.get("score", 5),
             "citation_accuracy_score": data.get("citation_accuracy_score", 10),
+            "format_compliance_score": data.get("format_compliance_score", 8),
             "strengths": data.get("strengths", []),
             "weaknesses": data.get("weaknesses", []),
             "hallucination_flags": data.get("hallucination_flags", []),
             "suggestions": data.get("suggestions", []),
         }
+
+    def _try_repair_json(self, text: str) -> dict:
+        """Attempt to repair truncated JSON by closing open structures."""
+        # Remove trailing incomplete tokens
+        lines = text.split("\n")
+        repaired_lines = []
+        for line in lines:
+            # Skip lines with obvious truncation artifacts
+            if line.strip().endswith("...") or "Unterminated" in line:
+                continue
+            repaired_lines.append(line)
+
+        # Try closing the JSON structure
+        repaired = "\n".join(repaired_lines)
+        try:
+            return json.loads(repaired)
+        except json.JSONDecodeError:
+            # Try appending minimal closing structure
+            for suffix in ["}", "]", "}]", "}]}", "}]})"]:
+                try:
+                    return json.loads(repaired + suffix)
+                except json.JSONDecodeError:
+                    continue
+
+        logger.warning(f"Could not repair JSON, returning defaults")
+        return {}
 
     def run(
         self,

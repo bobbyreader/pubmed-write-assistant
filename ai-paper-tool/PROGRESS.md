@@ -1,6 +1,6 @@
 # AI科研论文生成系统 — 项目进度
 
-> 最后更新：2026-04-11 21:00
+> 最后更新：2026-04-12 13:30
 
 ## 当前状态
 
@@ -16,7 +16,7 @@
 ## 已完成功能
 
 ### 1. SearchService — 学术论文搜索
-- **语义 Scholar API** (primary)：直接 httpx 调用
+- **语义 Scholar API** (primary)：直接 httpx 调用，支持 `SEMANTICSCHOLAR_API_KEY`（通过 `x-api-key` header 认证，突破 IP 级别限速）
 - **PubMed E-utilities** (fallback)：429/错误时自动降级
 - **timeout**: 15s 硬限制
 - **文件**: `backend/services/search_service.py`
@@ -109,8 +109,17 @@ streamlit run app.py --server.headless true --server.port 8501
 
 ## 下一步
 
-- [ ] 添加 Semantic Scholar API Key 以提升搜索质量
-- [ ] 添加论文全文导出 (Word/PDF)
-- [ ] 优化 Mini Pipeline 的进度反馈（实时 streaming）
-- [ ] 添加更多 agent 迭代 (Review → Edit 循环)
+- [x] ~~Add Semantic Scholar API Key 以提升搜索质量~~ ✅ (2026-04-12)
+- [x] ~~Add full paper export (Word/PDF)~~ ✅ (2026-04-12)
+  - **Word**: `python-docx`，支持标题层级、段落格式化
+  - **PDF**: `reportlab`（纯 Python，无需系统依赖），支持 A4 排版、居中对齐
+  - **导出服务**: `utils/export_service.py`
+  - Markdown 下载按钮保留，三个格式并列
+
+
+- [x] ~~Add real-time streaming progress feedback~~ ✅ (2026-04-12)
+  - 后台线程执行 Pipeline，Queue 推送进度到主线程
+  - st.rerun() 轮询消费 Queue，实时显示 phase icon + message + progress bar
+  - Pipeline 各阶段（research → write → review → edit → finalize）都有进度更新
+
 - [ ] 部署到云端
