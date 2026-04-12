@@ -1,5 +1,5 @@
 """
-Search Service — paper search with Semantic Scholar (primary) and PubMed (fallback).
+Search Service — paper search with OpenAlex (primary) and PubMed (fallback).
 """
 
 import logging
@@ -13,17 +13,8 @@ import httpx
 logger = logging.getLogger(__name__)
 load_dotenv(override=True)
 
-SS_FIELDS = [  # valid for paper/search endpoint
-    "title", "paperId", "year", "authors",
-    "abstract", "citationCount", "venue", "externalIds",
-]
-PAPER_FIELDS = [  # full set for paper/detail endpoint
-    "title", "paperId", "doi", "year", "authors",
-    "abstract", "url", "venue", "citationCount",
-]
-
 DEFAULT_TIMEOUT = 15
-SS_BASE = "https://api.semanticscholar.org/graph/v1"
+OPENALEX_BASE = "https://api.openalex.org"
 PUBMED_BASE = "https://eutils.ncbi.nlm.nih.gov/entrez/eutils"
 TRANSLATE_URL = "https://translate.googleapis.com/translate_a/single"
 
@@ -50,18 +41,19 @@ def _translate_to_en(text: str) -> str:
         return text
 
 
+def _reconstruct_abstract(inverted_index: dict) -> str:
+    """Reconstruct text from OpenAlex abstract_inverted_index."""
+    if not inverted_index:
+        return "Abstract not available."
+    words = sorted(inverted_index.items(), key=lambda x: x[1][0])
+    return " ".join(w for w, _ in words)
+
+
 class SearchService:
-    """Searches papers using Semantic Scholar (primary) with PubMed fallback."""
+    """Searches papers using OpenAlex (primary) with PubMed fallback."""
 
     def __init__(self, timeout: int = DEFAULT_TIMEOUT):
         self._timeout = timeout
-        self._ss_api_key = os.getenv("SEMANTICSCHOLAR_API_KEY") or os.getenv("S2_API_KEY")
-
-    def _ss_headers(self) -> dict:
-        headers = {}
-        if self._ss_api_key:
-            headers["x-api-key"] = self._ss_api_key
-        return headers
 
     def search(
         self,
@@ -74,57 +66,94 @@ class SearchService:
     ) -> list[dict]:
         """
         Search for papers with optional filters.
-        Tries Semantic Scholar first, falls back to PubMed on 429 or error.
+        Tries OpenAlex first, falls back to PubMed on error.
         """
-        papers = self._ss_search(query, top_k, year_from, year_to)
+        papers = self._openalex_search(query, top_k, year_from, year_to, author, venue)
         if papers:
             return papers
-        logger.warning(f"Semantic Scholar unavailable, falling back to PubMed for: {query}")
+        logger.warning(f"OpenAlex returned 0 papers, falling back to PubMed for: {query}")
         return self._pubmed_search(query, top_k, year_from, year_to, author, venue)
 
-    def _ss_search(
+    def _openalex_search(
         self,
         query: str,
         top_k: int,
         year_from: Optional[int],
         year_to: Optional[int],
+        author: Optional[str],
+        venue: Optional[str],
     ) -> list[dict]:
-        """Search via Semantic Scholar Graph API."""
+        """Search via OpenAlex API."""
+        en_query = _translate_to_en(query)
+        if en_query != query:
+            logger.info(f"Translated query: {query!r} → {en_query!r}")
+
         params = {
-            "query": query,
-            "limit": min(top_k, 100),
-            "fields": ",".join(SS_FIELDS),
+            "search": en_query,
+            "per-page": min(top_k, 100),
+            "select": "id,doi,title,authorships,publication_year,abstract_inverted_index,"
+                      "primary_location,open_access",
         }
-        if year_from or year_to:
-            yf = year_from or 1900
-            yt = year_to or 2100
-            params["year"] = f"{yf}-{yt}"
+
+        filters = []
+        if year_from and year_to:
+            filters.append(f"publication_year:{year_from}-{year_to}")
+        elif year_from:
+            filters.append(f"publication_year:>{year_from - 1}")
+        elif year_to:
+            filters.append(f"publication_year:<{year_to + 1}")
+        if filters:
+            params["filter"] = ",".join(filters)
+
         try:
             with httpx.Client(timeout=self._timeout, verify=False) as client:
-                resp = client.get(f"{SS_BASE}/paper/search", params=params, headers=self._ss_headers())
+                resp = client.get(f"{OPENALEX_BASE}/works", params=params)
+
             if resp.status_code == 429:
-                logger.warning("Semantic Scholar rate limit (429)")
+                logger.warning("OpenAlex rate limit (429)")
                 return []
             resp.raise_for_status()
             data = resp.json()
+
             papers = []
-            for item in data.get("data", []):
-                ext_ids = item.get("externalIds", {}) or {}
+            for item in data.get("results", []):
+                # Authors
+                authors = [
+                    a.get("author", {}).get("display_name", "")
+                    for a in item.get("authorships", [])
+                ][:10]
+
+                # Venue
+                loc = item.get("primary_location") or item.get("location") or {}
+                source = loc.get("source") or {}
+                venue_name = source.get("display_name", "") or ""
+
+                # Abstract
+                abstract = _reconstruct_abstract(item.get("abstract_inverted_index"))
+
+                # URL: try openalex URL first, then DOI
+                paper_url = item.get("id", "")
+                doi = item.get("doi", "")
+                if not paper_url and doi:
+                    paper_url = doi
+
                 papers.append({
-                    "paperId": item.get("paperId"),
-                    "title": item.get("title"),
-                    "abstract": item.get("abstract") or "Abstract not available.",
-                    "year": item.get("year"),
-                    "venue": item.get("venue"),
-                    "authors": [a.get("name", "") for a in item.get("authors", [])] if item.get("authors") else [],
-                    "citationCount": item.get("citationCount"),
-                    "doi": ext_ids.get("DOI"),
-                    "url": f"https://www.semanticscholar.org/paper/{item.get('paperId')}" if item.get("paperId") else None,
+                    "paperId": item.get("id", ""),
+                    "title": item.get("title", "No title"),
+                    "abstract": abstract,
+                    "year": item.get("publication_year"),
+                    "venue": venue_name,
+                    "authors": authors,
+                    "citationCount": None,
+                    "doi": doi.replace("https://doi.org/", "") if doi else None,
+                    "url": paper_url,
                 })
-            logger.info(f"SS returned {len(papers)} papers for: {query}")
+
+            logger.info(f"OpenAlex returned {len(papers)} papers for: {query}")
             return papers
+
         except Exception as e:
-            logger.error(f"SS search failed: {type(e).__name__}: {e}")
+            logger.error(f"OpenAlex search failed: {type(e).__name__}: {e}")
             return []
 
     def _pubmed_search(
@@ -141,7 +170,6 @@ class SearchService:
         if en_query != query:
             logger.info(f"Translated query: {query!r} → {en_query!r}")
 
-        # Build PubMed query with filters
         pubmed_parts = [en_query]
         if author:
             pubmed_parts.append(f"{author}[Author]")
@@ -172,7 +200,6 @@ class SearchService:
                 logger.info(f"PubMed returned 0 papers for: {query}")
                 return []
 
-            # Step 2: fetch details
             id_str = ",".join(ids)
             with httpx.Client(timeout=self._timeout, verify=False) as client:
                 fetch_resp = client.get(
@@ -213,7 +240,7 @@ class SearchService:
                     name = a.find("pm:LastName", ns) or a.find("LastName")
                     fore = a.find("pm:ForeName", ns) or a.find("ForeName")
                     if name is not None and name.text:
-                        full = f"{name.text}"
+                        full = name.text
                         if fore is not None and fore.text:
                             full = f"{fore.text} {name.text}"
                         authors.append(full)
@@ -234,30 +261,49 @@ class SearchService:
         return papers
 
     def get_paper(self, paper_id: str) -> Optional[dict]:
-        """Fetch a single paper by ID (tries SS, then PubMed)."""
-        meta = self._ss_paper(paper_id)
-        if meta:
-            return meta
+        """Fetch a single paper by OpenAlex ID or PubMed PMID."""
+        if paper_id.startswith("https://openalex.org/"):
+            return self._openalex_paper(paper_id)
         return self._pubmed_paper(paper_id)
 
-    def _ss_paper(self, paper_id: str) -> Optional[dict]:
-        """Fetch via Semantic Scholar."""
+    def _openalex_paper(self, paper_id: str) -> Optional[dict]:
+        """Fetch via OpenAlex by work ID."""
         try:
-            params = {"fields": ",".join(PAPER_FIELDS)}
+            work_url = f"{OPENALEX_BASE}/works/{paper_id.split('/')[-1]}"
             with httpx.Client(timeout=self._timeout, verify=False) as client:
-                resp = client.get(f"{SS_BASE}/paper/{paper_id}", params=params, headers=self._ss_headers())
+                resp = client.get(
+                    work_url,
+                    params={"select": "id,doi,title,authorships,publication_year,"
+                                     "abstract_inverted_index,primary_location,open_access"}
+                )
             if resp.status_code == 429:
                 return None
             resp.raise_for_status()
             item = resp.json()
-            meta = {f: item.get(f) for f in PAPER_FIELDS}
-            authors_list = item.get("authors", [])
-            meta["authors"] = [a.get("name", "") for a in authors_list] if authors_list else []
-            if meta.get("abstract") is None:
-                meta["abstract"] = "Abstract not available."
-            return meta
+
+            authors = [
+                a.get("author", {}).get("display_name", "")
+                for a in item.get("authorships", [])
+            ]
+            loc = item.get("primary_location") or {}
+            source = loc.get("source") or {}
+            venue_name = source.get("display_name", "")
+            abstract = _reconstruct_abstract(item.get("abstract_inverted_index"))
+            doi = item.get("doi", "")
+
+            return {
+                "paperId": item.get("id", ""),
+                "title": item.get("title", "No title"),
+                "abstract": abstract,
+                "year": item.get("publication_year"),
+                "venue": venue_name,
+                "authors": authors,
+                "citationCount": None,
+                "doi": doi.replace("https://doi.org/", "") if doi else None,
+                "url": item.get("id", "") or doi,
+            }
         except Exception as e:
-            logger.debug(f"SS paper fetch failed: {e}")
+            logger.debug(f"OpenAlex paper fetch failed: {e}")
         return None
 
     def _pubmed_paper(self, pmid: str) -> Optional[dict]:
