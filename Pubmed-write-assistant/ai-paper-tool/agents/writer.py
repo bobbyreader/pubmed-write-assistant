@@ -14,13 +14,13 @@ logger = logging.getLogger(__name__)
 
 
 class WriterAgent(BaseAgent):
-    """Generates paper outline, introduction, and related work."""
+    """Generates complete medical journal paper: Abstract, Introduction, Methods, Results, Discussion, Conclusion."""
 
     def __init__(self, llm_service: LLMService):
         super().__init__(
             config=AgentConfig(
                 system_prompt=WRITER_SYSTEM_PROMPT,
-                max_tokens=4096,
+                max_tokens=16384,
                 temperature=0.6,
             ),
             llm_service=llm_service,
@@ -44,24 +44,46 @@ class WriterAgent(BaseAgent):
         )
 
     def parse_response(self, raw_text: str) -> dict[str, Any]:
-        """Parse JSON output from Writer LLM — handles markdown code fences."""
+        """Parse JSON output from Writer LLM with markdown fence removal and truncation repair."""
         text = raw_text.strip()
-        # Strip markdown code block fences (```json ... ``` or ``` ... ```)
+        # Strip markdown code block fences
         if text.startswith("```"):
-            text = text.split("```")[1] if text.startswith("```") else text
-            # Remove language tag after opening fence
+            parts = text.split("```")
+            text = parts[1] if len(parts) > 1 else text
             if text.startswith("json"):
                 text = text[4:]
             text = text.strip()
-        # Also strip closing ``` if present
         if text.endswith("```"):
             text = text[:-3].strip()
-        data = json.loads(text)
+
+        try:
+            data = json.loads(text)
+        except json.JSONDecodeError:
+            logger.warning(f"Writer JSON parse failed, attempting repair. Raw[:200]: {raw_text[:200]!r}")
+            data = self._try_repair_json(text)
+            logger.warning(f"Writer JSON repair result keys: {list(data.keys())}")
+            return data
+
+        logger.info(f"Writer JSON keys returned: {list(data.keys())}")
         return {
             "outline": data.get("outline", ""),
+            "abstract": data.get("abstract", ""),
             "introduction": data.get("introduction", ""),
-            "related_work": data.get("related_work", ""),
+            "methods": data.get("methods", ""),
+            "results": data.get("results", ""),
+            "discussion": data.get("discussion", ""),
+            "conclusion": data.get("conclusion", ""),
         }
+
+    def _try_repair_json(self, text: str) -> dict:
+        """Attempt to repair truncated JSON by closing open structures."""
+        for suffix in ["}", "]", "}]", "}]}", "}]})", "}]})}]}"]:
+            try:
+                return json.loads(text + suffix)
+            except json.JSONDecodeError:
+                continue
+        logger.warning("Could not repair JSON in WriterAgent, returning empty dict")
+        return {}
 
     def run(self, topic: str, citation_map: dict, abstracts_context: str) -> AgentResponse:
         """

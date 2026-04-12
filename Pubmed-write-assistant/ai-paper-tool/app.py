@@ -5,11 +5,15 @@ Provides interactive paper generation with multi-round review visibility.
 
 import os
 import logging
+import threading
+import queue
+import time
 from datetime import datetime
 
 import streamlit as st
 
 from workflows.writing_pipeline import WritingPipeline
+from utils.export_service import export_word, export_pdf
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -32,6 +36,11 @@ def _init_state():
         "started": False,
         "error": "",
         "generating": False,
+        "generating_done": False,
+        "pipeline_progress_phase": "",
+        "pipeline_progress_msg": "",
+        "pipeline_progress_fraction": 0.0,
+        "progress_queue": None,
         # Debug state
         "debug_api_result": None,
         "debug_search_result": None,
@@ -55,10 +64,11 @@ def load_env():
         "api_key": os.getenv("ANTHROPIC_API_KEY", ""),
         "base_url": os.getenv("ANTHROPIC_BASE_URL", "https://api.minimax.chat/v1"),
         "model": os.getenv("ANTHROPIC_MODEL", "MiniMax-M2.7-highspeed"),
+        "ss_api_key": os.getenv("SEMANTICSCHOLAR_API_KEY", ""),
     }
 
 
-def save_env(api_key: str, base_url: str, model: str) -> tuple[bool, str]:
+def save_env(api_key: str, base_url: str, model: str, ss_api_key: str = "") -> tuple[bool, str]:
     """Save env vars to .env file."""
     try:
         env_path = os.path.join(os.path.dirname(__file__), ".env")
@@ -66,10 +76,13 @@ def save_env(api_key: str, base_url: str, model: str) -> tuple[bool, str]:
             f.write(f"ANTHROPIC_API_KEY={api_key}\n")
             f.write(f"ANTHROPIC_BASE_URL={base_url}\n")
             f.write(f"ANTHROPIC_MODEL={model}\n")
+            if ss_api_key.strip():
+                f.write(f"SEMANTICSCHOLAR_API_KEY={ss_api_key.strip()}\n")
         # Reload into current process
         os.environ["ANTHROPIC_API_KEY"] = api_key
         os.environ["ANTHROPIC_BASE_URL"] = base_url
         os.environ["ANTHROPIC_MODEL"] = model
+        os.environ["SEMANTICSCHOLAR_API_KEY"] = ss_api_key.strip()
         return True, "Saved to .env"
     except Exception as e:
         return False, str(e)
@@ -97,8 +110,10 @@ def render_paper_card(cite_id: str, meta: dict):
         if abstract_short and abstract_short != "Abstract not available.":
             st.info(f"**Abstract:** {abstract_short}")
         paper_id = meta.get("paperId", "")
-        if paper_id:
-            st.markdown(f"[Semantic Scholar](https://www.semanticscholar.org/paper/{paper_id})")
+        url = meta.get("url", "")
+        if url:
+            label = "PubMed" if "pubmed" in url else "Semantic Scholar"
+            st.markdown(f"[📎 {label}]({url})")
 
 
 def render_round_card(record):
@@ -112,7 +127,8 @@ def render_round_card(record):
     icon = phase_icons.get(record.phase, "📋")
     label = f"Round {record.round_num} — {icon} {record.phase.capitalize()}"
 
-    with st.expander(label, expanded=(record.phase in ("write", "review"))):
+    with st.container(border=True):
+        st.markdown(f"**{label}**")
         if record.phase == "search":
             st.success(f"✅ Found papers: {record.notes}")
         elif record.phase == "write":
@@ -203,6 +219,44 @@ def page_main():
         help="Enter your research topic in Chinese or English",
     )
 
+    # ─── Search Filters ──────────────────────────────────────
+    with st.expander("🔍 Search Filters (Optional)", expanded=False):
+        col1, col2 = st.columns(2)
+        with col1:
+            search_top_k = st.slider(
+                "Number of papers",
+                min_value=5,
+                max_value=50,
+                value=20,
+                step=5,
+                help="How many papers to search for",
+            )
+            year_from = st.number_input(
+                "From Year",
+                min_value=1990,
+                max_value=2026,
+                value=2018,
+                help="Filter papers from this year",
+            )
+        with col2:
+            year_to = st.number_input(
+                "To Year",
+                min_value=1990,
+                max_value=2026,
+                value=2026,
+                help="Filter papers up to this year",
+            )
+            author = st.text_input(
+                "Author name",
+                placeholder="e.g., Wang Wei",
+                help="Filter by author name (optional)",
+            )
+            venue = st.text_input(
+                "Journal/Venue",
+                placeholder="e.g., Nature Medicine",
+                help="Filter by journal name (optional)",
+            )
+
     col_generate, _ = st.columns([1, 2])
     with col_generate:
         generate_btn = st.button(
@@ -213,31 +267,105 @@ def page_main():
 
     if generate_btn and topic.strip():
         st.session_state.generating = True
+        st.session_state.generating_done = False
         st.session_state.started = True
         st.session_state.topic = topic.strip()
         st.session_state.error = ""
         st.session_state.rounds = []
+        st.session_state.pipeline_result = None
+        st.session_state.citation_map = {}
+        st.session_state.pipeline_progress_phase = "init"
+        st.session_state.pipeline_progress_msg = "Starting pipeline..."
+        st.session_state.pipeline_progress_fraction = 0.0
 
-        try:
-            pipeline = WritingPipeline()
-            result = pipeline.run(topic.strip())
-            st.session_state.pipeline_result = result
+        q: queue.Queue = queue.Queue()
+        st.session_state.progress_queue = q
 
-            if result.success:
-                st.session_state.citation_map = result.citation_map
-                st.session_state.rounds = result.rounds
-            else:
-                st.session_state.error = result.error
-        except Exception as e:
-            logger.exception("Pipeline failed")
-            st.session_state.error = str(e)
-        finally:
-            st.session_state.generating = False
-            st.rerun()
+        def _run_pipeline(
+            q_out: queue.Queue,
+            topic_in: str,
+            top_k: int,
+            yf: int | None,
+            yt: int | None,
+            auth: str | None,
+            ven: str | None,
+        ):
+            try:
+                pl = WritingPipeline()
+                pl.set_progress_callback(
+                    lambda phase, msg, frac: q_out.put(("progress", phase, msg, frac))
+                )
+                result = pl.run(
+                    topic_in,
+                    search_top_k=top_k,
+                    year_from=yf if yf else None,
+                    year_to=yt if yt else None,
+                    author=(auth or "").strip() or None,
+                    venue=(ven or "").strip() or None,
+                )
+                q_out.put(("result", result))
+            except Exception as e:
+                logger.exception("Pipeline thread failed")
+                q_out.put(("error", str(e)))
+
+        t = threading.Thread(
+            target=_run_pipeline,
+            args=(
+                q,
+                topic.strip(),
+                search_top_k,
+                year_from,
+                year_to,
+                author if (author or "").strip() else None,
+                venue if (venue or "").strip() else None,
+            ),
+            daemon=True,
+        )
+        t.start()
+        st.rerun()
+
+    # ─── Poll progress from background thread ───────────────────
+    if st.session_state.generating and not st.session_state.generating_done:
+        q = st.session_state.progress_queue
+        if q is not None:
+            # Drain all queued messages
+            while True:
+                try:
+                    item = q.get_nowait()
+                    if item[0] == "progress":
+                        _, phase, msg, frac = item
+                        st.session_state.pipeline_progress_phase = phase
+                        st.session_state.pipeline_progress_msg = msg
+                        st.session_state.pipeline_progress_fraction = frac
+                    elif item[0] == "result":
+                        st.session_state.pipeline_result = item[1]
+                        st.session_state.generating_done = True
+                        st.session_state.generating = False
+                        if item[1].success:
+                            st.session_state.citation_map = item[1].citation_map
+                            st.session_state.rounds = item[1].rounds
+                        else:
+                            st.session_state.error = item[1].error
+                        st.rerun()
+                    elif item[0] == "error":
+                        st.session_state.error = item[1]
+                        st.session_state.generating_done = True
+                        st.session_state.generating = False
+                        st.rerun()
+                except queue.Empty:
+                    break
+        # Re-rerun to keep polling
+        time.sleep(1)
+        st.rerun()
 
     if st.session_state.generating:
-        st.info("⏳ Generating... This may take a few minutes. Please wait...")
-        st.progress(None, text="Running pipeline...")
+        phase = st.session_state.pipeline_progress_phase
+        msg = st.session_state.pipeline_progress_msg
+        frac = st.session_state.pipeline_progress_fraction
+        phase_icons = {"init": "🔧", "research": "🔍", "write": "✍️", "review": "🔎", "edit": "✏️", "finalize": "📋"}
+        icon = phase_icons.get(phase, "⏳")
+        st.info(f"{icon} **{msg}**")
+        st.progress(frac if frac > 0 else None)
 
     if st.session_state.error:
         st.error(f"❌ {st.session_state.error}")
@@ -261,11 +389,24 @@ def page_main():
                 if result.final_draft:
                     st.markdown(result.final_draft)
                     md_content = result.final_draft + "\n\n---\n\n## References\n\n" + result.references
+                    ts = datetime.now().strftime('%Y%m%d_%H%M%S')
                     st.download_button(
-                        "📥 Download as Markdown",
+                        "📥 Markdown",
                         data=md_content,
-                        file_name=f"paper_{datetime.now().strftime('%Y%m%d_%H%M%S')}.md",
+                        file_name=f"paper_{ts}.md",
                         mime="text/markdown",
+                    )
+                    st.download_button(
+                        "📄 Word (.docx)",
+                        data=export_word(md_content, st.session_state.topic),
+                        file_name=f"paper_{ts}.docx",
+                        mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+                    )
+                    st.download_button(
+                        "📑 PDF",
+                        data=export_pdf(md_content, st.session_state.topic),
+                        file_name=f"paper_{ts}.pdf",
+                        mime="application/pdf",
                     )
                 else:
                     st.warning("No draft generated")
@@ -324,13 +465,19 @@ def page_settings():
                 value=env["model"],
                 help="Model name (default: MiniMax-M2.7-highspeed)",
             )
+            ss_api_key = st.text_input(
+                "SEMANTICSCHOLAR_API_KEY (optional)",
+                value=env.get("ss_api_key", ""),
+                type="password",
+                help="Semantic Scholar API key — increases rate limit from IP-level to key-level. Get one free at https://www.semanticscholar.org/product/api",
+            )
             submitted = st.form_submit_button("💾 Save to .env", type="primary")
 
             if submitted:
                 if not api_key.strip():
                     st.error("API key cannot be empty")
                 else:
-                    ok, msg = save_env(api_key.strip(), base_url.strip(), model.strip())
+                    ok, msg = save_env(api_key.strip(), base_url.strip(), model.strip(), ss_api_key)
                     if ok:
                         st.success(f"✅ {msg}")
                         st.rerun()
@@ -339,13 +486,16 @@ def page_settings():
 
         # Current config display
         st.markdown("#### Current Configuration")
-        col1, col2, col3 = st.columns(3)
+        col1, col2, col3, col4 = st.columns(4)
         with col1:
             st.metric("API Key", (api_key[:4] + "****" + api_key[-4:]) if len(api_key) > 8 else "****")
         with col2:
             st.metric("Base URL", base_url)
         with col3:
             st.metric("Model", model)
+        with col4:
+            ss_display = (ss_api_key[:4] + "****") if len(ss_api_key) > 4 else "not set"
+            st.metric("SS Key", ss_display)
 
     # ─── Tab: Debug Console ──────────────────────────────────
     with tab_debug:

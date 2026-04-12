@@ -6,21 +6,15 @@ import json
 import logging
 from typing import Any
 
-import semanticscholar as ss
-
 from agents.base_agent import AgentConfig, AgentResponse, BaseAgent
 from backend.services.llm_service import LLMService
+from backend.services.search_service import SearchService
 from utils.prompts import (
     RESEARCHER_SYSTEM_PROMPT,
     RESEARCHER_USER_PROMPT,
 )
 
 logger = logging.getLogger(__name__)
-
-PAPER_FIELDS = [
-    "title", "paperId", "doi", "year", "authors",
-    "abstract", "url", "venue", "citationCount",
-]
 
 
 class ResearcherAgent(BaseAgent):
@@ -31,46 +25,61 @@ class ResearcherAgent(BaseAgent):
             config=AgentConfig(system_prompt=RESEARCHER_SYSTEM_PROMPT),
             llm_service=llm_service,
         )
+        self._search_service = SearchService()
 
     def get_system_prompt(self) -> str:
         return RESEARCHER_SYSTEM_PROMPT
 
-    def search(self, topic: str, top_k: int = 10) -> dict[str, dict]:
+    def search(
+        self,
+        topic: str,
+        top_k: int = 20,
+        year_from: int = None,
+        year_to: int = None,
+        author: str = None,
+        venue: str = None,
+    ) -> dict[str, dict]:
         """
-        Direct Semantic Scholar search (no LLM needed).
+        Direct search via SearchService (SS primary + PubMed fallback).
         Returns citation_map dict.
         """
         citation_map = {}
         try:
-            results = ss.search_paper(topic, limit=top_k)
-            for i, paper in enumerate(results, start=1):
-                meta = {f: getattr(paper, f, None) for f in PAPER_FIELDS}
-                # Flatten authors
-                if hasattr(paper, "authors") and paper.authors:
-                    meta["authors"] = [a.name for a in paper.authors]
-                else:
-                    meta["authors"] = []
-                citation_map[f"[{i}]"] = meta
+            papers = self._search_service.search(
+                topic,
+                top_k=top_k,
+                year_from=year_from,
+                year_to=year_to,
+                author=author,
+                venue=venue,
+            )
+            for i, paper in enumerate(papers, start=1):
+                citation_map[f"[{i}]"] = paper
         except Exception as e:
-            logger.error(f"Semantic Scholar search failed: {e}")
+            logger.error(f"Search failed: {e}")
         return citation_map
 
     def parse_response(self, raw_text: str) -> dict[str, Any]:
         """Parse LLM-structured output from researcher."""
-        # The researcher actually does direct search, but the LLM
-        # can synthesize/filter. We expect JSON with citation_map + summary.
         data = json.loads(raw_text)
         return {
             "citation_map": data.get("citation_map", {}),
             "summary": data.get("summary", ""),
         }
 
-    def run_search(self, topic: str, top_k: int = 10) -> AgentResponse:
+    def run_search(
+        self,
+        topic: str,
+        top_k: int = 20,
+        year_from: int = None,
+        year_to: int = None,
+        author: str = None,
+        venue: str = None,
+    ) -> AgentResponse:
         """
-        Main entry point: direct search + optional LLM synthesis.
-        For now, direct search is the source of truth.
+        Main entry point: direct search via SearchService.
         """
-        citation_map = self.search(topic, top_k=top_k)
+        citation_map = self.search(topic, top_k=top_k, year_from=year_from, year_to=year_to, author=author, venue=venue)
         if not citation_map:
             return AgentResponse(
                 success=False,

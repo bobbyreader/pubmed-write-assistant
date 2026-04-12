@@ -5,7 +5,7 @@ Implements 2-3 rounds of iteration with early-exit on high scores.
 
 import logging
 from dataclasses import dataclass, field
-from typing import Any
+from typing import Any, Callable, Optional
 
 from agents.editor import EditorAgent
 from agents.researcher import ResearcherAgent
@@ -74,8 +74,26 @@ class WritingPipeline:
         self.editor = EditorAgent(self.llm_service)
 
         self.rounds: list[RoundRecord] = []
+        self._progress_callback: Optional[Callable[[str, str, float], None]] = None
 
-    def run(self, topic: str, max_rounds: int = MAX_ROUNDS) -> PipelineResult:
+    def set_progress_callback(self, cb: Callable[[str, str, float], None]):
+        """Set a callback for progress updates. cb(phase, message, fraction)."""
+        self._progress_callback = cb
+
+    def _emit(self, phase: str, msg: str, fraction: float):
+        if self._progress_callback:
+            self._progress_callback(phase, msg, fraction)
+
+    def run(
+        self,
+        topic: str,
+        max_rounds: int = MAX_ROUNDS,
+        search_top_k: int = 20,
+        year_from: int = None,
+        year_to: int = None,
+        author: str = None,
+        venue: str = None,
+    ) -> PipelineResult:
         """
         Execute the full pipeline.
 
@@ -90,8 +108,16 @@ class WritingPipeline:
         self.rounds = []
 
         # ─── Phase 1: Research ───
+        self._emit("research", "Searching Semantic Scholar and PubMed...", 0.05)
         try:
-            search_result = self.researcher.run_search(topic, top_k=10)
+            search_result = self.researcher.run_search(
+                topic,
+                top_k=search_top_k,
+                year_from=year_from,
+                year_to=year_to,
+                author=author,
+                venue=venue,
+            )
             if not search_result.success:
                 return PipelineResult(success=False, error=search_result.error)
             citation_map = search_result.content["citation_map"]
@@ -107,6 +133,7 @@ class WritingPipeline:
         )
         self.rounds.append(search_record)
 
+        self._emit("research", f"Found {len(citation_map)} papers, building context...", 0.15)
         if not citation_map:
             return PipelineResult(
                 success=False,
@@ -117,6 +144,7 @@ class WritingPipeline:
         abstracts_context = self.citation_service.abstracts_context()
 
         # ─── Phase 2: Write ───
+        self._emit("write", "Generating outline, introduction and related work...", 0.20)
         try:
             write_result = self.writer.run(topic, citation_map, abstracts_context)
             if not write_result.success:
@@ -142,6 +170,7 @@ class WritingPipeline:
         current_draft = draft_content
         for round_i in range(1, max_rounds + 1):
             logger.info(f"Review round {round_i}/{max_rounds}")
+            self._emit("review", f"Reviewing draft (round {round_i}/{max_rounds})...", 0.25 + (round_i - 1) * 0.20)
 
             # Review
             review_result = self.reviewer.run(
@@ -184,6 +213,7 @@ class WritingPipeline:
 
             # Edit (unless last round)
             if round_i < max_rounds:
+                self._emit("edit", f"Editing and improving (round {round_i}/{max_rounds})...", 0.35 + (round_i - 1) * 0.20)
                 edit_result = self.editor.run(
                     topic=topic,
                     original_draft=current_draft,
@@ -203,6 +233,7 @@ class WritingPipeline:
                 self.rounds.append(edit_record)
 
         # ─── Final assembly ───
+        self._emit("finalize", "Formatting references and finalizing...", 0.98)
         references = self.citation_service.format_for_references()
         logger.info("Pipeline complete")
 
@@ -217,18 +248,29 @@ class WritingPipeline:
 
     def _assemble_draft(self, topic: str, draft_data: dict) -> str:
         """Assemble full paper markdown from draft_data sections."""
-        outline = draft_data.get("outline", "")
+        abstract = draft_data.get("abstract", "")
         introduction = draft_data.get("introduction", "")
-        related_work = draft_data.get("related_work", "")
+        methods = draft_data.get("methods", "")
+        results = draft_data.get("results", "")
+        discussion = draft_data.get("discussion", "")
+        conclusion = draft_data.get("conclusion", "")
+        outline = draft_data.get("outline", "")
 
         parts = [
-            f"# Topic: {topic}\n",
-            "## Outline\n",
-            outline,
-            "\n## Introduction\n",
-            introduction,
-            "\n## Related Work\n",
-            related_work,
+            f"# {topic}\n",
+            f"{outline}\n",
+            f"## Abstract\n",
+            f"{abstract}\n",
+            f"## Introduction\n",
+            f"{introduction}\n",
+            f"## Methods\n",
+            f"{methods}\n",
+            f"## Results\n",
+            f"{results}\n",
+            f"## Discussion\n",
+            f"{discussion}\n",
+            f"## Conclusion\n",
+            f"{conclusion}",
         ]
         return "\n".join(parts)
 

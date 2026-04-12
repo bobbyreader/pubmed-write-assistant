@@ -3,11 +3,15 @@ Search Service — paper search with Semantic Scholar (primary) and PubMed (fall
 """
 
 import logging
+import os
+import re
 from typing import Optional
 
+from dotenv import load_dotenv
 import httpx
 
 logger = logging.getLogger(__name__)
+load_dotenv(override=True)
 
 SS_FIELDS = [  # valid for paper/search endpoint
     "title", "paperId", "year", "authors",
@@ -21,6 +25,29 @@ PAPER_FIELDS = [  # full set for paper/detail endpoint
 DEFAULT_TIMEOUT = 15
 SS_BASE = "https://api.semanticscholar.org/graph/v1"
 PUBMED_BASE = "https://eutils.ncbi.nlm.nih.gov/entrez/eutils"
+TRANSLATE_URL = "https://translate.googleapis.com/translate_a/single"
+
+
+def _translate_to_en(text: str) -> str:
+    """Translate text to English using Google Translate (free, no API key)."""
+    try:
+        params = {
+            "client": "gtx",
+            "sl": "zh-CN",
+            "tl": "en",
+            "dt": "t",
+            "q": text,
+        }
+        with httpx.Client(timeout=10, verify=False) as client:
+            resp = client.get(TRANSLATE_URL, params=params)
+        resp.raise_for_status()
+        data = resp.json()
+        if data and data[0]:
+            return "".join(item[0] for item in data[0] if item[0])
+        return text
+    except Exception as e:
+        logger.debug(f"Translation failed: {e}")
+        return text
 
 
 class SearchService:
@@ -28,28 +55,39 @@ class SearchService:
 
     def __init__(self, timeout: int = DEFAULT_TIMEOUT):
         self._timeout = timeout
+        self._ss_api_key = os.getenv("SEMANTICSCHOLAR_API_KEY") or os.getenv("S2_API_KEY")
+
+    def _ss_headers(self) -> dict:
+        headers = {}
+        if self._ss_api_key:
+            headers["x-api-key"] = self._ss_api_key
+        return headers
 
     def search(
         self,
         query: str,
-        top_k: int = 10,
-        year_range: Optional[str] = None,
+        top_k: int = 20,
+        year_from: Optional[int] = None,
+        year_to: Optional[int] = None,
+        author: Optional[str] = None,
+        venue: Optional[str] = None,
     ) -> list[dict]:
         """
-        Search for papers and return list of paper dicts.
+        Search for papers with optional filters.
         Tries Semantic Scholar first, falls back to PubMed on 429 or error.
         """
-        papers = self._ss_search(query, top_k, year_range)
+        papers = self._ss_search(query, top_k, year_from, year_to)
         if papers:
             return papers
         logger.warning(f"Semantic Scholar unavailable, falling back to PubMed for: {query}")
-        return self._pubmed_search(query, top_k)
+        return self._pubmed_search(query, top_k, year_from, year_to, author, venue)
 
     def _ss_search(
         self,
         query: str,
         top_k: int,
-        year_range: Optional[str],
+        year_from: Optional[int],
+        year_to: Optional[int],
     ) -> list[dict]:
         """Search via Semantic Scholar Graph API."""
         params = {
@@ -57,11 +95,13 @@ class SearchService:
             "limit": min(top_k, 100),
             "fields": ",".join(SS_FIELDS),
         }
-        if year_range:
-            params["year"] = year_range
+        if year_from or year_to:
+            yf = year_from or 1900
+            yt = year_to or 2100
+            params["year"] = f"{yf}-{yt}"
         try:
-            with httpx.Client(timeout=self._timeout) as client:
-                resp = client.get(f"{SS_BASE}/paper/search", params=params)
+            with httpx.Client(timeout=self._timeout, verify=False) as client:
+                resp = client.get(f"{SS_BASE}/paper/search", params=params, headers=self._ss_headers())
             if resp.status_code == 429:
                 logger.warning("Semantic Scholar rate limit (429)")
                 return []
@@ -87,14 +127,43 @@ class SearchService:
             logger.error(f"SS search failed: {type(e).__name__}: {e}")
             return []
 
-    def _pubmed_search(self, query: str, top_k: int) -> list[dict]:
-        """Search via PubMed E-utilities as fallback."""
+    def _pubmed_search(
+        self,
+        query: str,
+        top_k: int,
+        year_from: Optional[int] = None,
+        year_to: Optional[int] = None,
+        author: Optional[str] = None,
+        venue: Optional[str] = None,
+    ) -> list[dict]:
+        """Search via PubMed E-utilities as fallback with optional filters."""
+        en_query = _translate_to_en(query)
+        if en_query != query:
+            logger.info(f"Translated query: {query!r} → {en_query!r}")
+
+        # Build PubMed query with filters
+        pubmed_parts = [en_query]
+        if author:
+            pubmed_parts.append(f"{author}[Author]")
+        if venue:
+            pubmed_parts.append(f"{venue}[Journal]")
+        pubmed_query = " AND ".join(pubmed_parts)
+
+        year_filter = ""
+        if year_from and year_to:
+            year_filter = f" ({year_from}:{year_to}[Date - Publication])"
+        elif year_from:
+            year_filter = f" ({year_from}[Date - Publication])"
+        elif year_to:
+            year_filter = f" ({year_to}[Date - Publication])"
+
+        full_query = pubmed_query + year_filter
+
         try:
-            # Step 1: search for IDs
-            with httpx.Client(timeout=self._timeout) as client:
+            with httpx.Client(timeout=self._timeout, verify=False) as client:
                 search_resp = client.get(
                     f"{PUBMED_BASE}/esearch.fcgi",
-                    params={"db": "pubmed", "term": query, "retmax": top_k, "retmode": "json"},
+                    params={"db": "pubmed", "term": full_query, "retmax": top_k, "retmode": "json"},
                 )
             search_resp.raise_for_status()
             search_data = search_resp.json()
@@ -105,7 +174,7 @@ class SearchService:
 
             # Step 2: fetch details
             id_str = ",".join(ids)
-            with httpx.Client(timeout=self._timeout) as client:
+            with httpx.Client(timeout=self._timeout, verify=False) as client:
                 fetch_resp = client.get(
                     f"{PUBMED_BASE}/efetch.fcgi",
                     params={"db": "pubmed", "id": id_str, "retmode": "xml"},
@@ -175,8 +244,8 @@ class SearchService:
         """Fetch via Semantic Scholar."""
         try:
             params = {"fields": ",".join(PAPER_FIELDS)}
-            with httpx.Client(timeout=self._timeout) as client:
-                resp = client.get(f"{SS_BASE}/paper/{paper_id}", params=params)
+            with httpx.Client(timeout=self._timeout, verify=False) as client:
+                resp = client.get(f"{SS_BASE}/paper/{paper_id}", params=params, headers=self._ss_headers())
             if resp.status_code == 429:
                 return None
             resp.raise_for_status()
@@ -194,7 +263,7 @@ class SearchService:
     def _pubmed_paper(self, pmid: str) -> Optional[dict]:
         """Fetch via PubMed."""
         try:
-            with httpx.Client(timeout=self._timeout) as client:
+            with httpx.Client(timeout=self._timeout, verify=False) as client:
                 resp = client.get(
                     f"{PUBMED_BASE}/efetch.fcgi",
                     params={"db": "pubmed", "id": pmid, "retmode": "xml"},

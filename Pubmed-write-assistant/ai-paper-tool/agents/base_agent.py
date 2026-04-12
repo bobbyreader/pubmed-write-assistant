@@ -76,6 +76,9 @@ class BaseAgent(ABC):
                 temperature=self.config.temperature,
             )
             parsed = self.parse_response(raw)
+            if parsed is None:
+                logger.error(f"Parse returned None in {self.__class__.__name__}")
+                return AgentResponse(success=False, error="Failed to parse response", raw=raw)
             return AgentResponse(success=True, content=parsed, raw=raw)
         except json.JSONDecodeError as e:
             logger.error(f"JSON parse error in {self.__class__.__name__}: {e}")
