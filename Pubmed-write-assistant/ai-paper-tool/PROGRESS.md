@@ -115,7 +115,7 @@
 ## 安全修复（2026-04-13）
 
 - **R-1**: `verify=False` → `certifi.where()`，所有外部 API 调用启用 CA 证书验证
-- **R-2**: Dockerfile `server.address` 从 `0.0.0.0` 改为 `127.0.0.1`，容器端口不对公网暴露
+- **R-2**: Render 平台必须绑定 `0.0.0.0`（健康检查扫描 0.0.0.0），安全由平台层网络隔离保证
 - **R-3**: `.env` 已纳入 `.gitignore`
 - **R-4**: langchain 传递依赖冲突（未实际 import，不影响）
 - **R-5**: Dockerfile Python 版本统一为 `3.9-slim`
