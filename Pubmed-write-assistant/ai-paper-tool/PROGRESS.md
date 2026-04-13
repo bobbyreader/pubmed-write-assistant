@@ -1,6 +1,6 @@
 # AI科研论文生成系统 — 项目进度
 
-> 最后更新：2026-04-12 22:30
+> 最后更新：2026-04-13
 
 ## 当前状态
 
@@ -23,7 +23,7 @@
   - fields: paperId,title,abstract,year,authors,venue,citationCount,externalIds,url
   - year filter: YYYY-YYYY range or YYYY- / -YYYY
 - **PubMed E-utilities** (tertiary)：429/错误时自动降级，Google Translate 中文→英文
-- **SSL 修复**：所有 httpx Client 添加 `verify=False`，解决 macOS SSL EOF 问题
+- **SSL 修复**：所有 httpx Client 使用 `certifi.where()` CA 证书，生产环境 MITM 防护已启用
 - **搜索过滤器**：年份范围、作者、期刊名称、论文数量（5-50）
 - **timeout**: 15s
 
@@ -111,6 +111,14 @@
 **解法**: 按钮 → `generating=True` + `st.rerun()` → 后台执行 → 结果写入 → `st.rerun()`
 
 ---
+
+## 安全修复（2026-04-13）
+
+- **R-1**: `verify=False` → `certifi.where()`，所有外部 API 调用启用 CA 证书验证
+- **R-2**: Dockerfile `server.address` 从 `0.0.0.0` 改为 `127.0.0.1`，容器端口不对公网暴露
+- **R-3**: `.env` 已纳入 `.gitignore`
+- **R-4**: langchain 传递依赖冲突（未实际 import，不影响）
+- **R-5**: Dockerfile Python 版本统一为 `3.9-slim`
 
 ## 已知限制
 
