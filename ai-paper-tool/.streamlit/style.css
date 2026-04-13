@@ -1,0 +1,76 @@
+/* ─── 整体 ─────────────────────────────── */
+.stApp {
+    background: #F7F9FC;
+}
+
+/* ─── Sidebar ──────────────────────────── */
+[data-testid="stSidebar"] {
+    background: #FFFFFF;
+    border-right: 1px solid #E8EDF2;
+}
+
+[data-testid="stSidebarContent"] {
+    padding-top: 1.5rem;
+}
+
+/* ─── Hero / Title ────────────────────── */
+.main-title {
+    font-size: 2.2rem;
+    font-weight: 700;
+    color: #1A2332;
+    margin-bottom: 0.3rem;
+    letter-spacing: -0.02em;
+}
+
+.sub-title {
+    font-size: 1rem;
+    color: #5A6978;
+    margin-bottom: 1.5rem;
+    font-weight: 400;
+}
+
+/* ─── Cards ───────────────────────────── */
+[data-testid="stHorizontalBlock"] > div > div,
+.stCard {
+    border: 1px solid #E8EDF2;
+    border-radius: 12px;
+    background: #FFFFFF;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+}
+
+/* ─── Buttons ─────────────────────────── */
+.st-emotion-cache-ghzmj1 {
+    border-radius: 8px;
+}
+
+/* ─── 进度条 ───────────────────────────── */
+[data-testid="stProgressBar"] > div > div > div {
+    background: linear-gradient(90deg, #2E7D9B, #4FB3BF);
+    border-radius: 4px;
+}
+
+/* ─── Expander ─────────────────────────── */
+.streamlit-expander {
+    border: 1px solid #E8EDF2;
+    border-radius: 8px;
+}
+
+/* ─── Markdown text ───────────────────── */
+p, li {
+    line-height: 1.7;
+}
+
+/* ─── Metric ──────────────────────────── */
+[data-testid="stMetricValue"] {
+    font-weight: 600;
+    color: #2E7D9B;
+}
+
+/* ─── Scrollbar ───────────────────────── */
+::-webkit-scrollbar {
+    width: 6px;
+}
+::-webkit-scrollbar-thumb {
+    background: #CBD5E0;
+    border-radius: 3px;
+}
