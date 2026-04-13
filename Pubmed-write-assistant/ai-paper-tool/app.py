@@ -9,6 +9,7 @@ import threading
 import queue
 import time
 from datetime import datetime
+from typing import Optional
 
 import streamlit as st
 
@@ -285,10 +286,10 @@ def page_main():
             q_out: queue.Queue,
             topic_in: str,
             top_k: int,
-            yf: int | None,
-            yt: int | None,
-            auth: str | None,
-            ven: str | None,
+            yf: Optional[int],
+            yt: Optional[int],
+            auth: Optional[str],
+            ven: Optional[str],
         ):
             try:
                 pl = WritingPipeline()
