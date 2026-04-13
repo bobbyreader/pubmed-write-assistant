@@ -229,45 +229,35 @@ def page_main():
         help="Enter your research topic in Chinese or English",
     )
 
-    # ─── Search Filters ──────────────────────────────────────
-    with st.expander("🔍 Search Filters (Optional)", expanded=False):
-        col1, col2 = st.columns(2)
-        with col1:
-            search_top_k = st.slider(
-                "Number of papers",
-                min_value=5,
-                max_value=50,
-                value=20,
-                step=5,
-                help="How many papers to search for",
-            )
-            year_from = st.number_input(
-                "From Year",
-                min_value=1990,
-                max_value=2026,
-                value=2018,
-                help="Filter papers from this year",
-            )
-        with col2:
-            year_to = st.number_input(
-                "To Year",
-                min_value=1990,
-                max_value=2026,
-                value=2026,
-                help="Filter papers up to this year",
-            )
-            author = st.text_input(
-                "Author name",
-                placeholder="e.g., Wang Wei",
-                help="Filter by author name (optional)",
-            )
-            venue = st.text_input(
-                "Journal/Venue",
-                placeholder="e.g., Nature Medicine",
-                help="Filter by journal name (optional)",
-            )
+    # ─── Hero Search ────────────────────────────────────────
+    st.markdown('<p class="main-title">📄 PubMed Paper Assistant</p>', unsafe_allow_html=True)
+    st.markdown('<p class="sub-title">Generate publication-ready research papers with verified citations</p>', unsafe_allow_html=True)
 
-    col_generate, _ = st.columns([1, 2])
+    topic = st.text_input(
+        "",
+        placeholder="Search research topic... e.g. LLM reasoning in scientific discovery",
+        help="Enter your research topic in Chinese or English",
+        label_visibility="collapsed",
+    )
+
+    # ─── Filter Chips ─────────────────────────────────────────
+    col_f1, col_f2, col_f3, col_f4 = st.columns([1, 1, 1, 1])
+    with col_f1:
+        search_top_k = st.slider("Papers", min_value=5, max_value=50, value=20, step=5, label_visibility="collapsed")
+    with col_f2:
+        year_from = st.number_input("From", min_value=1990, max_value=2026, value=2018, label_visibility="collapsed")
+    with col_f3:
+        year_to = st.number_input("To", min_value=1990, max_value=2026, value=2026, label_visibility="collapsed")
+    with col_f4:
+        author = st.text_input("Author", placeholder="Any author", label_visibility="collapsed")
+
+    col_f5, _ = st.columns([1, 3])
+    with col_f5:
+        venue = st.text_input("Journal/Venue", placeholder="Any journal", label_visibility="collapsed")
+
+    st.markdown("")  # spacing
+
+    col_generate, _, _ = st.columns([1, 1, 1])
     with col_generate:
         generate_btn = st.button(
             "🚀 Generate Paper",

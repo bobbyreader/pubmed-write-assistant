@@ -25,8 +25,39 @@
 .sub-title {
     font-size: 1rem;
     color: #5A6978;
-    margin-bottom: 1.5rem;
+    margin-bottom: 1.8rem;
     font-weight: 400;
+}
+
+/* ─── Search Input (hero style) ──────── */
+[data-testid="stTextInput"] > div > div > input[type="text"]:first-child {
+    font-size: 1.1rem !important;
+    padding: 12px 16px !important;
+    border-radius: 24px !important;
+    border: 1px solid #DADCE0 !important;
+    box-shadow: 0 1px 4px rgba(32,33,36,0.08) !important;
+    max-width: 680px !important;
+}
+
+[data-testid="stTextInput"] > div > div > input[type="text"]:first-child:focus {
+    border-color: #2E7D9B !important;
+    box-shadow: 0 1px 6px rgba(46,125,155,0.2) !important;
+    outline: none !important;
+}
+
+/* ─── Filter labels ──────────────────── */
+[data-testid="stSlider"] > label,
+[data-testid="stNumberInput"] > label,
+[data-testid="stTextInput"] > label {
+    font-size: 0.75rem !important;
+    color: #5A6978 !important;
+    font-weight: 500 !important;
+    margin-bottom: 2px !important;
+}
+
+/* ─── Buttons ─────────────────────────── */
+.st-emotion-cache-ghzmj1 {
+    border-radius: 8px;
 }
 
 /* ─── Cards ───────────────────────────── */
