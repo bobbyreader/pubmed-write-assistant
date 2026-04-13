@@ -11,6 +11,9 @@ from backend.services.citation_service import CitationService
 logger = logging.getLogger(__name__)
 
 
+MAX_ABSTRACT_LENGTH = 800  # Max characters per abstract to prevent token overflow
+
+
 class RAGService:
     """
     RAG context preparation for agent prompts.
@@ -26,6 +29,12 @@ class RAGService:
         (Researcher uses direct API search, minimal prompt context needed.)
         """
         return f"Topic: {topic}\n\nSearch for up to 10 highly relevant papers. Prioritize recent and highly-cited papers."
+
+    def _truncate_abstract(self, abstract: str, max_length: int = MAX_ABSTRACT_LENGTH) -> str:
+        """Truncate abstract to max_length, adding ellipsis if truncated."""
+        if len(abstract) <= max_length:
+            return abstract
+        return abstract[:max_length].rsplit(" ", 1)[0] + "..."
 
     def build_writer_context(self) -> str:
         """
@@ -48,6 +57,7 @@ class RAGService:
             else:
                 authors_str = "Unknown"
             abstract = meta.get("abstract", "No abstract available.")
+            abstract = self._truncate_abstract(abstract)
             parts.append(
                 f"--- {cite_id} ---\n"
                 f"Title: {title}\n"

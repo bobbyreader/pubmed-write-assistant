@@ -16,6 +16,7 @@ load_dotenv(override=True)
 DEFAULT_TIMEOUT = 15
 OPENALEX_BASE = "https://api.openalex.org"
 PUBMED_BASE = "https://eutils.ncbi.nlm.nih.gov/entrez/eutils"
+SEMANTICSCHOLAR_BASE = "https://api.semanticscholar.org/graph/v1"
 TRANSLATE_URL = "https://translate.googleapis.com/translate_a/single"
 
 
@@ -66,13 +67,20 @@ class SearchService:
     ) -> list[dict]:
         """
         Search for papers with optional filters.
-        Tries OpenAlex first, falls back to PubMed on error.
+        Tries OpenAlex first, then Semantic Scholar, then PubMed on error.
         """
         papers = self._openalex_search(query, top_k, year_from, year_to, author, venue)
-        if papers:
-            return papers
-        logger.warning(f"OpenAlex returned 0 papers, falling back to PubMed for: {query}")
-        return self._pubmed_search(query, top_k, year_from, year_to, author, venue)
+        if len(papers) >= top_k:
+            return papers[:top_k]
+        logger.info(f"OpenAlex returned {len(papers)} papers, trying Semantic Scholar for: {query}")
+        ss_papers = self._semantic_scholar_search(query, top_k, year_from, year_to, author, venue)
+        papers.extend(ss_papers)
+        if len(papers) >= top_k:
+            return papers[:top_k]
+        logger.warning(f"Combined results ({len(papers)}) < {top_k}, falling back to PubMed for: {query}")
+        pubmed_papers = self._pubmed_search(query, top_k, year_from, year_to, author, venue)
+        papers.extend(pubmed_papers)
+        return papers[:top_k]
 
     def _openalex_search(
         self,
@@ -154,6 +162,85 @@ class SearchService:
 
         except Exception as e:
             logger.error(f"OpenAlex search failed: {type(e).__name__}: {e}")
+            return []
+
+    def _semantic_scholar_search(
+        self,
+        query: str,
+        top_k: int,
+        year_from: Optional[int],
+        year_to: Optional[int],
+        author: Optional[str],
+        venue: Optional[str],
+    ) -> list[dict]:
+        """Search via Semantic Scholar API."""
+        en_query = _translate_to_en(query)
+        if en_query != query:
+            logger.info(f"Translated query: {query!r} → {en_query!r}")
+
+        ss_parts = [en_query]
+        if author:
+            ss_parts.append(f"author:{author}")
+        if venue:
+            ss_parts.append(f"venue:{venue}")
+        ss_query = " ".join(ss_parts)
+
+        year_filter = None
+        if year_from and year_to:
+            year_filter = f"{year_from}-{year_to}"
+        elif year_from:
+            year_filter = f"{year_from}-"
+        elif year_to:
+            year_filter = f"-{year_to}"
+
+        params = {
+            "query": ss_query,
+            "limit": min(top_k, 100),
+            "fields": "paperId,title,abstract,year,authors,venue,citationCount,externalIds,url",
+        }
+        if year_filter:
+            params["year"] = year_filter
+
+        try:
+            with httpx.Client(timeout=self._timeout, verify=False) as client:
+                resp = client.get(
+                    f"{SEMANTICSCHOLAR_BASE}/paper/search",
+                    params=params,
+                )
+
+            if resp.status_code == 429:
+                logger.warning("Semantic Scholar rate limit (429)")
+                return []
+            resp.raise_for_status()
+            data = resp.json()
+
+            papers = []
+            for item in data.get("data", []):
+                authors = [
+                    a.get("name", "")
+                    for a in item.get("authors", [])
+                ][:10]
+
+                external_ids = item.get("externalIds", {}) or {}
+                doi = external_ids.get("DOI", "")
+
+                papers.append({
+                    "paperId": item.get("paperId", ""),
+                    "title": item.get("title", "No title"),
+                    "abstract": item.get("abstract") or "Abstract not available.",
+                    "year": item.get("year"),
+                    "venue": item.get("venue", ""),
+                    "authors": authors,
+                    "citationCount": item.get("citationCount"),
+                    "doi": doi.replace("https://doi.org/", "") if doi else None,
+                    "url": item.get("url") or f"https://www.semanticscholar.org/paper/{item.get('paperId', '')}",
+                })
+
+            logger.info(f"Semantic Scholar returned {len(papers)} papers for: {query}")
+            return papers
+
+        except Exception as e:
+            logger.error(f"Semantic Scholar search failed: {type(e).__name__}: {e}")
             return []
 
     def _pubmed_search(

@@ -21,7 +21,7 @@ class EditorAgent(BaseAgent):
         super().__init__(
             config=AgentConfig(
                 system_prompt=EDITOR_SYSTEM_PROMPT,
-                max_tokens=8192,
+                max_tokens=12288,
                 temperature=0.4,
             ),
             llm_service=llm_service,

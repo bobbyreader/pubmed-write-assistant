@@ -19,7 +19,10 @@
 - **OpenAlex API** (primary)：free, no API key, full abstracts with inverted_index reconstruction
   - Valid select fields: id,doi,title,authorships,publication_year,abstract_inverted_index,primary_location,open_access
   - Filter syntax: `publication_year:YYYY-YYYY` (range) or `publication_year:>Y` / `publication_year:<Y`
-- **PubMed E-utilities** (fallback)：429/错误时自动降级，Google Translate 中文→英文
+- **Semantic Scholar API** (secondary)：补充搜索，提高引用多样性
+  - fields: paperId,title,abstract,year,authors,venue,citationCount,externalIds,url
+  - year filter: YYYY-YYYY range or YYYY- / -YYYY
+- **PubMed E-utilities** (tertiary)：429/错误时自动降级，Google Translate 中文→英文
 - **SSL 修复**：所有 httpx Client 添加 `verify=False`，解决 macOS SSL EOF 问题
 - **搜索过滤器**：年份范围、作者、期刊名称、论文数量（5-50）
 - **timeout**: 15s
@@ -29,7 +32,11 @@
 - **thinking**: `"thinking": {"type": "disabled"}`
 - `base_url`: `https://v2.aicodee.com/v1/messages`
 
-### 3. 医学期刊格式 (IMRaD)
+### 3. RAGService — 上下文管理
+- **摘要截断**：每篇摘要最大 800 字符，防止 token 溢出（2026-04-13 新增）
+- **全量注入**：所有论文摘要注入 Writer/Reviewer/Editor 上下文
+
+### 4. 医学期刊格式 (IMRaD)
 - **Abstract**：结构化（BACKGROUND/OBJECTIVE/METHODS/RESULTS/CONCLUSION）
 - **Introduction**：背景→研究空白→目标
 - **Methods**：Study Design / Participants / Outcome Measures / Statistical Analysis
@@ -39,12 +46,12 @@
 - **引文格式**：Vancouver（方括号数字）
 - **Related Work**：已移除（整合到 Introduction/Discussion）
 
-### 4. 多 Agent 流水线
+### 5. 多 Agent 流水线
 - Researcher → Writer → Reviewer(×3) → Editor
 - Hallucination 检测：Reviewer 发现引用问题，Editor 修正
 - Anti-hallucination 规则：禁止"相关数据"占位符，禁止引用错配
 
-### 5. 导出服务
+### 6. 导出服务
 - **Word** (`export_word`): python-docx，含表格渲染
 - **PDF** (`export_pdf`): reportlab + STHeiti 中文字体，含表格渲染
 - **Markdown**: 原始文本下载
@@ -65,7 +72,7 @@
 │ LLMService   │ RAGService   │ CitationService  │
 │ (MiniMax)    │ (Context)    │ (Reference Mgmt)│
 ├──────────────┴──────────────┴──────────────────┤
-│  SearchService (OpenAlex primary + PubMed fallback)   │
+│  SearchService (OpenAlex + Semantic Scholar + PubMed) │
 └─────────────────────────────────────────────────┘
 ```
 
@@ -76,8 +83,8 @@
 | Agent | max_tokens | 说明 |
 |-------|-----------|------|
 | Writer | 16384 | 6 大章节 + 50 篇摘要输入 |
-| Reviewer | 8192 | 长草稿 + citation_map + abstracts |
-| Editor | 8192 | 长草稿 + reviewer feedback |
+| Reviewer | 12288 | 长草稿 + citation_map + abstracts（2026-04-13 升级自 8192） |
+| Editor | 12288 | 长草稿 + reviewer feedback（2026-04-13 升级自 8192） |
 
 ---
 
