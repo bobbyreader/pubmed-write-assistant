@@ -444,59 +444,93 @@ def page_settings():
 
     with tab_api:
         st.markdown("### API Configuration")
-        st.caption("Changes are saved to `.env` and take effect immediately.")
-        st.caption("⚠️ Do not commit `.env` to version control.")
+
+        # Check if API key is set via environment variable (cloud deployment)
+        env_api_key = os.getenv("ANTHROPIC_API_KEY", "")
+        env_base_url = os.getenv("ANTHROPIC_BASE_URL", "")
+        env_model = os.getenv("ANTHROPIC_MODEL", "")
+        env_ss_key = os.getenv("SEMANTICSCHOLAR_API_KEY", "")
+
+        is_cloud_deployed = bool(env_api_key)
+
+        if is_cloud_deployed:
+            st.success("🔒 API Key is configured via environment variables (cloud deployment)")
+            st.caption("To change the API key, update the environment variables in your cloud platform settings.")
+        else:
+            st.caption("Changes are saved to `.env` and take effect immediately.")
+            st.caption("⚠️ Do not commit `.env` to version control.")
 
         env = load_env()
 
         with st.form("env_form", border=True):
-            api_key = st.text_input(
-                "ANTHROPIC_API_KEY",
-                value=env["api_key"],
-                type="password",
-                help="Your MiniMax API key",
-            )
-            base_url = st.text_input(
-                "ANTHROPIC_BASE_URL",
-                value=env["base_url"],
-                help="Anthropic-compatible base URL",
-            )
-            model = st.text_input(
-                "ANTHROPIC_MODEL",
-                value=env["model"],
-                help="Model name (default: MiniMax-M2.7-highspeed)",
-            )
-            ss_api_key = st.text_input(
-                "SEMANTICSCHOLAR_API_KEY (optional)",
-                value=env.get("ss_api_key", ""),
-                type="password",
-                help="Semantic Scholar API key — increases rate limit from IP-level to key-level. Get one free at https://www.semanticscholar.org/product/api",
-            )
-            submitted = st.form_submit_button("💾 Save to .env", type="primary")
+            if is_cloud_deployed:
+                # Show masked values, fields disabled
+                st.text_input("ANTHROPIC_API_KEY", value="*" * 20, disabled=True, help="Set via environment variable")
+                st.text_input("ANTHROPIC_BASE_URL", value=env_base_url, disabled=True, help="Set via environment variable")
+                st.text_input("ANTHROPIC_MODEL", value=env_model, disabled=True, help="Set via environment variable")
+                st.text_input("SEMANTICSCHOLAR_API_KEY (optional)", value="*" * 20 if env_ss_key else "", disabled=True, help="Set via environment variable")
+                st.info("Environment variables are read-only. Contact administrator to change.")
+            else:
+                api_key = st.text_input(
+                    "ANTHROPIC_API_KEY",
+                    value=env["api_key"],
+                    type="password",
+                    help="Your MiniMax API key",
+                )
+                base_url = st.text_input(
+                    "ANTHROPIC_BASE_URL",
+                    value=env["base_url"],
+                    help="Anthropic-compatible base URL",
+                )
+                model = st.text_input(
+                    "ANTHROPIC_MODEL",
+                    value=env["model"],
+                    help="Model name (default: MiniMax-M2.7-highspeed)",
+                )
+                ss_api_key = st.text_input(
+                    "SEMANTICSCHOLAR_API_KEY (optional)",
+                    value=env.get("ss_api_key", ""),
+                    type="password",
+                    help="Semantic Scholar API key — increases rate limit from IP-level to key-level. Get one free at https://www.semanticscholar.org/product/api",
+                )
+                submitted = st.form_submit_button("💾 Save to .env", type="primary")
 
-            if submitted:
-                if not api_key.strip():
-                    st.error("API key cannot be empty")
-                else:
-                    ok, msg = save_env(api_key.strip(), base_url.strip(), model.strip(), ss_api_key)
-                    if ok:
-                        st.success(f"✅ {msg}")
-                        st.rerun()
+                if submitted:
+                    if not api_key.strip():
+                        st.error("API key cannot be empty")
                     else:
-                        st.error(f"❌ Failed to save: {msg}")
+                        ok, msg = save_env(api_key.strip(), base_url.strip(), model.strip(), ss_api_key)
+                        if ok:
+                            st.success(f"✅ {msg}")
+                            st.rerun()
+                        else:
+                            st.error(f"❌ Failed to save: {msg}")
 
-        # Current config display
-        st.markdown("#### Current Configuration")
-        col1, col2, col3, col4 = st.columns(4)
-        with col1:
-            st.metric("API Key", (api_key[:4] + "****" + api_key[-4:]) if len(api_key) > 8 else "****")
-        with col2:
-            st.metric("Base URL", base_url)
-        with col3:
-            st.metric("Model", model)
-        with col4:
-            ss_display = (ss_api_key[:4] + "****") if len(ss_api_key) > 4 else "not set"
-            st.metric("SS Key", ss_display)
+            # Current config display
+            st.markdown("#### Current Configuration")
+            col1, col2, col3, col4 = st.columns(4)
+            if is_cloud_deployed:
+                with col1:
+                    st.metric("API Key", env_api_key[:4] + "****" + env_api_key[-4:] if len(env_api_key) > 8 else "****")
+                with col2:
+                    st.metric("Base URL", env_base_url)
+                with col3:
+                    st.metric("Model", env_model)
+                with col4:
+                    ss_display = (env_ss_key[:4] + "****") if len(env_ss_key) > 4 else "not set"
+                    st.metric("SS Key", ss_display)
+            else:
+                with col1:
+                    api_key_disp = env.get("api_key", "")
+                    st.metric("API Key", (api_key_disp[:4] + "****" + api_key_disp[-4:]) if len(api_key_disp) > 8 else "****")
+                with col2:
+                    st.metric("Base URL", env.get("base_url", ""))
+                with col3:
+                    st.metric("Model", env.get("model", ""))
+                with col4:
+                    ss_disp = env.get("ss_api_key", "")
+                    ss_display = (ss_disp[:4] + "****") if len(ss_disp) > 4 else "not set"
+                    st.metric("SS Key", ss_display)
 
     # ─── Tab: Debug Console ──────────────────────────────────
     with tab_debug:
