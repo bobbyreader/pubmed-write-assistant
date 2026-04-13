@@ -21,7 +21,7 @@ class ReviewerAgent(BaseAgent):
         super().__init__(
             config=AgentConfig(
                 system_prompt=REVIEWER_SYSTEM_PROMPT,
-                max_tokens=8192,
+                max_tokens=12288,
                 temperature=0.3,
             ),
             llm_service=llm_service,

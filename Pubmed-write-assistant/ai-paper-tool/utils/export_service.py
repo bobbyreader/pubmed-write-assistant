@@ -18,12 +18,37 @@ from reportlab.pdfbase import pdfmetrics
 from reportlab.pdfbase.ttfonts import TTFont
 from reportlab.lib.colors import HexColor
 
-# Register Chinese font for PDF
-try:
-    pdfmetrics.registerFont(TTFont('STHeiti', '/System/Library/Fonts/STHeiti Medium.ttc', subfontIndex=0))
-    CHINESE_FONT = 'STHeiti'
-except Exception:
-    CHINESE_FONT = 'Helvetica'
+# Register Chinese font for PDF (cross-platform support)
+CHINESE_FONT = 'Helvetica'  # fallback
+
+# Try to find and register a Chinese font
+_font_registered = False
+_font_paths = [
+    # Windows Chinese fonts (try in order of preference)
+    ("C:/Windows/Fonts/STSONG.TTF", "STSong"),
+    ("C:/Windows/Fonts/STXIHEI.TTF", "STXiHei"),
+    ("C:/Windows/Fonts/simhei.ttf", "SimHei"),
+    ("C:/Windows/Fonts/msyh.ttc", "Microsoft YaHei"),
+    # macOS Chinese fonts
+    ("/System/Library/Fonts/STHeiti Medium.ttc", "STHeiti"),
+    ("/System/Library/Fonts/PingFang.ttc", "PingFang"),
+    # Linux Chinese fonts
+    ("/usr/share/fonts/truetype/wqy/wqy-microhei.ttc", "WenQuanYi MicroHei"),
+    ("/usr/share/fonts/truetype/noto/NotoSansCJK-Regular.ttc", "Noto Sans CJK"),
+]
+
+for font_path, font_name in _font_paths:
+    try:
+        import os
+        if os.path.exists(font_path):
+            # Use subfontIndex=0 for TTC files, or default for TTF
+            is_ttc = font_path.endswith('.ttc')
+            pdfmetrics.registerFont(TTFont(font_name, font_path, subfontIndex=0))
+            CHINESE_FONT = font_name
+            _font_registered = True
+            break
+    except Exception:
+        continue
 
 
 def _md_to_plain_text(md_text: str) -> str:
@@ -106,7 +131,7 @@ def _split_sections(md_text: str) -> list[tuple[str, str]]:
     return sections
 
 
-def _render_content(doc: Document, body: str):
+def _render_content(doc: Document, body: str, font_name: str = 'Microsoft YaHei'):
     """
     Render markdown body content to docx, handling tables properly.
     Tables are extracted and rendered as docx Table objects.
@@ -144,12 +169,19 @@ def _render_content(doc: Document, body: str):
                         # Strip markdown from cell text
                         clean = _md_to_plain_text(cell_text)
                         cell.text = clean
+                        # Set cell font for Chinese
+                        for paragraph in cell.paragraphs:
+                            for run in paragraph.runs:
+                                run.font.name = font_name
+                                run.font.size = Pt(10)
                 continue
         else:
             # Regular paragraph
             stripped = _md_to_plain_text(line)
             if stripped:
-                doc.add_paragraph(stripped, style='Normal')
+                para = doc.add_paragraph(stripped, style='Normal')
+                for run in para.runs:
+                    run.font.name = font_name
         i += 1
 
 
@@ -158,19 +190,32 @@ def export_word(md_content: str, title: str = "AI Paper") -> bytes:
     doc = Document()
     doc.core_properties.title = title
 
+    # Set default font for Chinese
+    style = doc.styles['Normal']
+    font_name = 'Microsoft YaHei'
+    style.font.name = font_name
+    style.font.size = Pt(11)
+
     # Title
     title_para = doc.add_heading(title, 0)
     title_para.alignment = WD_ALIGN_PARAGRAPH.CENTER
+    for run in title_para.runs:
+        run.font.name = font_name
 
-    doc.add_paragraph(f"Generated: {datetime.now().strftime('%Y-%m-%d %H:%M')}").alignment = WD_ALIGN_PARAGRAPH.CENTER
+    date_para = doc.add_paragraph(f"Generated: {datetime.now().strftime('%Y-%m-%d %H:%M')}")
+    date_para.alignment = WD_ALIGN_PARAGRAPH.CENTER
+    for run in date_para.runs:
+        run.font.name = font_name
 
     sections = _split_sections(md_content)
 
     for section_title, section_body in sections:
         if section_title:
-            doc.add_heading(section_title, level=1)
+            h_para = doc.add_heading(section_title, level=1)
+            for run in h_para.runs:
+                run.font.name = font_name
         if section_body:
-            _render_content(doc, section_body)
+            _render_content(doc, section_body, font_name)
 
     buf = io.BytesIO()
     doc.save(buf)
