@@ -7,6 +7,7 @@ import os
 import re
 from typing import Optional
 
+import certifi
 from dotenv import load_dotenv
 import httpx
 
@@ -30,7 +31,7 @@ def _translate_to_en(text: str) -> str:
             "dt": "t",
             "q": text,
         }
-        with httpx.Client(timeout=10, verify=False) as client:
+        with httpx.Client(timeout=10, verify=certifi.where()) as client:
             resp = client.get(TRANSLATE_URL, params=params)
         resp.raise_for_status()
         data = resp.json()
@@ -114,7 +115,7 @@ class SearchService:
             params["filter"] = ",".join(filters)
 
         try:
-            with httpx.Client(timeout=self._timeout, verify=False) as client:
+            with httpx.Client(timeout=self._timeout, verify=certifi.where()) as client:
                 resp = client.get(f"{OPENALEX_BASE}/works", params=params)
 
             if resp.status_code == 429:
@@ -202,7 +203,7 @@ class SearchService:
             params["year"] = year_filter
 
         try:
-            with httpx.Client(timeout=self._timeout, verify=False) as client:
+            with httpx.Client(timeout=self._timeout, verify=certifi.where()) as client:
                 resp = client.get(
                     f"{SEMANTICSCHOLAR_BASE}/paper/search",
                     params=params,
@@ -275,7 +276,7 @@ class SearchService:
         full_query = pubmed_query + year_filter
 
         try:
-            with httpx.Client(timeout=self._timeout, verify=False) as client:
+            with httpx.Client(timeout=self._timeout, verify=certifi.where()) as client:
                 search_resp = client.get(
                     f"{PUBMED_BASE}/esearch.fcgi",
                     params={"db": "pubmed", "term": full_query, "retmax": top_k, "retmode": "json"},
@@ -288,7 +289,7 @@ class SearchService:
                 return []
 
             id_str = ",".join(ids)
-            with httpx.Client(timeout=self._timeout, verify=False) as client:
+            with httpx.Client(timeout=self._timeout, verify=certifi.where()) as client:
                 fetch_resp = client.get(
                     f"{PUBMED_BASE}/efetch.fcgi",
                     params={"db": "pubmed", "id": id_str, "retmode": "xml"},
@@ -357,7 +358,7 @@ class SearchService:
         """Fetch via OpenAlex by work ID."""
         try:
             work_url = f"{OPENALEX_BASE}/works/{paper_id.split('/')[-1]}"
-            with httpx.Client(timeout=self._timeout, verify=False) as client:
+            with httpx.Client(timeout=self._timeout, verify=certifi.where()) as client:
                 resp = client.get(
                     work_url,
                     params={"select": "id,doi,title,authorships,publication_year,"
@@ -396,7 +397,7 @@ class SearchService:
     def _pubmed_paper(self, pmid: str) -> Optional[dict]:
         """Fetch via PubMed."""
         try:
-            with httpx.Client(timeout=self._timeout, verify=False) as client:
+            with httpx.Client(timeout=self._timeout, verify=certifi.where()) as client:
                 resp = client.get(
                     f"{PUBMED_BASE}/efetch.fcgi",
                     params={"db": "pubmed", "id": pmid, "retmode": "xml"},
