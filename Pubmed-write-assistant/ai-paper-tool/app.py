@@ -199,13 +199,18 @@ def page_main():
 
         st.divider()
         st.header("⚙️ Quick Settings")
+        env_api_key = os.getenv("ANTHROPIC_API_KEY", "")
+        is_cloud_deployed = bool(env_api_key)
         env = load_env()
         st.text(f"Model: {env['model']}")
         st.text(f"Base URL: {env['base_url']}")
-        masked_key = env["api_key"]
-        if masked_key and len(masked_key) > 8:
-            masked_key = masked_key[:4] + "****" + masked_key[-4:]
-        st.text(f"API Key: {masked_key}")
+        if is_cloud_deployed:
+            st.text("API Key: ●●●●●●●●●●")
+        else:
+            masked_key = env["api_key"]
+            if masked_key and len(masked_key) > 8:
+                masked_key = masked_key[:4] + "****" + masked_key[-4:]
+            st.text(f"API Key: {masked_key}")
 
         st.divider()
         if st.button("🗑️ Reset Session"):
