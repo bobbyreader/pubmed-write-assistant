@@ -20,11 +20,15 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 st.set_page_config(
-    page_title="AI Paper Tool",
+    page_title="PubMed Paper Assistant",
     page_icon="📄",
     layout="wide",
     initial_sidebar_state="collapsed",
 )
+
+# Custom CSS
+with open(os.path.join(os.path.dirname(__file__), ".streamlit", "style.css")) as f:
+    st.markdown(f"<style>{f.read()}</style>", unsafe_allow_html=True)
 
 
 # ─── Session State ────────────────────────────────────────────
@@ -184,8 +188,8 @@ def render_round_card(record):
 
 # ─── Page: Main ──────────────────────────────────────────────
 def page_main():
-    st.title("📄 AI Paper Tool")
-    st.caption("Generate academic papers with real citations — no hallucinations")
+    st.markdown('<p class="main-title">📄 PubMed Paper Assistant</p>', unsafe_allow_html=True)
+    st.markdown('<p class="sub-title">Generate publication-ready research papers with verified citations</p>', unsafe_allow_html=True)
 
     # ─── Sidebar ─────────────────────────────────────────────
     with st.sidebar:
@@ -436,13 +440,11 @@ def page_main():
 
         ⚠️ **Anti-hallucination**: All citations are verified against the citation map.
         """)
-        st.divider()
-        st.caption("Built with MiniMax M2.7 + Semantic Scholar")
 
 
 # ─── Page: Settings ───────────────────────────────────────────
 def page_settings():
-    st.title("⚙️ Settings & Debug")
+    st.markdown('<p class="main-title">⚙️ Settings</p>', unsafe_allow_html=True)
 
     # ─── Tab: API Config ────────────────────────────────────
     tab_api, tab_debug = st.tabs(["🔑 API Configuration", "🔬 Debug Console"])
@@ -737,8 +739,8 @@ def page_settings():
 
 # ─── Main ────────────────────────────────────────────────────
 def main():
-    st.title("📄 AI Paper Tool")
-    st.caption("Generate academic papers with real citations — no hallucinations")
+    st.markdown('<p class="main-title">📄 PubMed Paper Assistant</p>', unsafe_allow_html=True)
+    st.markdown('<p class="sub-title">Generate publication-ready research papers with verified citations</p>', unsafe_allow_html=True)
 
     # Top nav
     pg = st.navigation([
