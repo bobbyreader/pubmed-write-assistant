@@ -1,64 +1,107 @@
+/* ═══════════════════════════════════════════════════════════════
+   Apple Design System — PubMed Paper Assistant
+   Inspired by apple.com design language
+   ═══════════════════════════════════════════════════════════════ */
+
 /* ─── Animations ─────────────────────────── */
 @keyframes spin {
     from { transform: rotate(0deg); }
     to { transform: rotate(360deg); }
 }
 
-/* ─── Design Tokens — Stitch-Inspired Dark Theme ─── */
+@keyframes fadeInUp {
+    from { opacity: 0; transform: translateY(12px); }
+    to   { opacity: 1; transform: translateY(0); }
+}
+
+/* ─── Design Tokens — Apple Design System ─── */
 :root {
-    /* Core palette */
-    --color-bg: #191a1f;
-    --color-surface: #25262b;
-    --color-surface-hover: #2c2d33;
-    --color-border: rgba(255, 255, 255, 0.08);
-    --color-border-hover: rgba(255, 255, 255, 0.16);
+    /* ── Sections: Binary light/dark rhythm ── */
+    --apple-black:    #000000;
+    --apple-gray:     #f5f5f7;
+    --apple-nearblack: #1d1d1f;
 
-    /* Text */
-    --color-text-primary: #ffffff;
-    --color-text-secondary: rgba(255, 255, 255, 0.7);
-    --color-text-muted: rgba(255, 255, 255, 0.4);
+    /* ── Text ── */
+    --apple-white:      #ffffff;
+    --apple-black-80:    rgba(0, 0, 0, 0.80);
+    --apple-black-48:    rgba(0, 0, 0, 0.48);
+    --apple-white-80:    rgba(255, 255, 255, 0.80);
+    --apple-white-48:    rgba(255, 255, 255, 0.48);
 
-    /* Accent — Google blue */
-    --color-accent: #8ab4f8;
-    --color-accent-hover: #aecbfa;
-    --color-accent-dim: rgba(138, 180, 248, 0.12);
+    /* ── Interactive: Single accent — Apple Blue ── */
+    --apple-blue:      #0071e3;
+    --apple-blue-hover:#0077ED;
+    --apple-link:      #0066cc;
+    --apple-link-dark: #2997ff;
 
-    /* Semantic */
-    --color-success: #81c995;
-    --color-warning: #fdd663;
-    --color-error: #f28b82;
-    --color-info: #78d9ef;
+    /* ── Dark surfaces ── */
+    --apple-dark-1: #272729;
+    --apple-dark-2: #262628;
+    --apple-dark-3: #28282a;
+    --apple-dark-4: #2a2a2d;
+    --apple-dark-5: #242426;
 
-    /* Material shadow (dark) */
-    --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.4), 0 1px 2px rgba(0, 0, 0, 0.3);
-    --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.4), 0 2px 4px rgba(0, 0, 0, 0.3);
-    --shadow-lg: 0 8px 28px rgba(0, 0, 0, 0.5), 0 4px 8px rgba(0, 0, 0, 0.4);
+    /* ── Button states ── */
+    --apple-btn-active:     #ededf2;
+    --apple-btn-light:      #fafafc;
+    --apple-overlay:        rgba(210, 210, 215, 0.64);
+    --apple-white-32:       rgba(255, 255, 255, 0.32);
 
-    /* Radius */
-    --radius-sm: 8px;
-    --radius-md: 12px;
-    --radius-lg: 18px;
-    --radius-xl: 24px;
-    --radius-full: 9999px;
+    /* ── Shadow: Soft, diffused — Apple style ── */
+    --apple-shadow:     rgba(0, 0, 0, 0.22) 3px 5px 30px 0px;
+    --apple-shadow-sm:  rgba(0, 0, 0, 0.18) 1px 3px 10px 0px;
 
-    /* Typography */
-    --font-body: 'Google Sans', -apple-system, BlinkMacSystemFont, sans-serif;
-    --font-mono: 'JetBrains Mono', 'Fira Code', monospace;
+    /* ── Border radius scale ── */
+    --apple-radius-micro:     5px;
+    --apple-radius-std:       8px;
+    --apple-radius-comfort:  11px;
+    --apple-radius-lg:       12px;
+    --apple-radius-pill:     980px;
 
-    /* Transitions */
-    --transition-fast: 150ms cubic-bezier(0.4, 0, 0.2, 1);
-    --transition-base: 240ms cubic-bezier(0.4, 0, 0.2, 1);
+    /* ── Typography ── */
+    /* SF Pro Display: 20px+; SF Pro Text: below 20px */
+    /* Using system fonts with Apple fallbacks */
+    --font-display: -apple-system, BlinkMacSystemFont, "SF Pro Display",
+                   "Helvetica Neue", Helvetica, Arial, sans-serif;
+    --font-text:    -apple-system, BlinkMacSystemFont, "SF Pro Text",
+                   "Helvetica Neue", Helvetica, Arial, sans-serif;
+    --font-mono:    "SF Mono", SFMono-Regular, "JetBrains Mono",
+                   "Fira Code", Menlo, monospace;
+
+    /* ── Spacing: Base 8px, scale 2-24px ── */
+    --sp-1:  2px;
+    --sp-2:  4px;
+    --sp-3:  5px;
+    --sp-4:  6px;
+    --sp-5:  7px;
+    --sp-6:  8px;
+    --sp-7:  9px;
+    --sp-8: 10px;
+    --sp-9: 11px;
+    --sp-10: 14px;
+    --sp-11: 15px;
+    --sp-12: 17px;
+    --sp-13: 20px;
+    --sp-14: 24px;
+    --sp-15: 28px;
+    --sp-16: 34px;
+    --sp-17: 40px;
+    --sp-18: 48px;
+    --sp-19: 56px;
+
+    /* ── Transitions ── */
+    --apple-ease: 200ms cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 /* ─── Global Reset ─────────────────────────── */
 html {
-    background: var(--color-bg);
+    scroll-behavior: smooth;
 }
 
 .stApp {
-    background: var(--color-bg) !important;
-    font-family: var(--font-body) !important;
-    color: var(--color-text-primary);
+    background: var(--apple-gray) !important;
+    font-family: var(--font-text) !important;
+    color: var(--apple-nearblack);
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
     min-height: 100svh;
@@ -74,227 +117,506 @@ html {
 }
 
 .stApp [data-testid="stMainBlockContainer"] {
-    padding-top: 1.5rem !important;
-    max-width: 900px !important;
+    padding-top: var(--sp-15) !important;
+    max-width: 980px !important;
 }
 
 /* ─── Scrollbar ─────────────────────────────── */
-::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar { width: 5px; }
 ::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb {
-    background: rgba(255, 255, 255, 0.1);
+    background: rgba(0, 0, 0, 0.15);
     border-radius: 3px;
 }
 ::-webkit-scrollbar-thumb:hover {
-    background: rgba(255, 255, 255, 0.2);
+    background: rgba(0, 0, 0, 0.25);
 }
 
-/* ─── Typography ───────────────────────────── */
-h1, h2, h3, h4 {
-    font-family: var(--font-body) !important;
-    font-weight: 500;
-    letter-spacing: -0.01em;
-    color: var(--color-text-primary);
-    line-height: 1.3;
+/* ─── Typography ─────────────────────────────── */
+h1, h2, h3, h4, h5, h6 {
+    font-family: var(--font-display) !important;
+    color: var(--apple-nearblack);
+    line-height: 1.1;
+    letter-spacing: -0.02em;
 }
 
-p, li, span, label {
-    font-family: var(--font-body);
-    line-height: 1.6;
+p, li, span, label, div {
+    font-family: var(--font-text);
+    line-height: 1.5;
 }
+
+/* Apple typography scale */
+.apple-hero-title {
+    font-family: var(--font-display) !important;
+    font-size: 3.5rem !important;      /* 56px — Display Hero */
+    font-weight: 600 !important;
+    line-height: 1.07 !important;
+    letter-spacing: -0.28px !important;
+    color: var(--apple-nearblack) !important;
+    margin-bottom: var(--sp-4) !important;
+}
+
+.apple-section-title {
+    font-family: var(--font-display) !important;
+    font-size: 2.5rem !important;      /* 40px — Section Heading */
+    font-weight: 600 !important;
+    line-height: 1.1 !important;
+    color: var(--apple-nearblack) !important;
+    margin-bottom: var(--sp-5) !important;
+}
+
+.apple-tile-title {
+    font-family: var(--font-display) !important;
+    font-size: 1.75rem !important;     /* 28px — Tile Heading */
+    font-weight: 400 !important;
+    line-height: 1.14 !important;
+    letter-spacing: 0.196px !important;
+    color: var(--apple-nearblack) !important;
+}
+
+.apple-card-title {
+    font-family: var(--font-display) !important;
+    font-size: 1.31rem !important;    /* ~21px — Card Title Bold */
+    font-weight: 700 !important;
+    line-height: 1.19 !important;
+    letter-spacing: 0.231px !important;
+    color: var(--apple-nearblack) !important;
+}
+
+.apple-card-subtitle {
+    font-family: var(--font-display) !important;
+    font-size: 1.31rem !important;    /* ~21px — Card Title Regular */
+    font-weight: 400 !important;
+    line-height: 1.19 !important;
+    letter-spacing: 0.231px !important;
+    color: var(--apple-nearblack) !important;
+}
+
+.apple-body {
+    font-family: var(--font-text) !important;
+    font-size: 1.06rem !important;    /* ~17px — Body */
+    font-weight: 400 !important;
+    line-height: 1.47 !important;
+    letter-spacing: -0.374px !important;
+    color: var(--apple-black-80) !important;
+}
+
+.apple-body-emphasis {
+    font-family: var(--font-text) !important;
+    font-size: 1.06rem !important;
+    font-weight: 600 !important;
+    line-height: 1.24 !important;
+    letter-spacing: -0.374px !important;
+    color: var(--apple-nearblack) !important;
+}
+
+.apple-caption {
+    font-family: var(--font-text) !important;
+    font-size: 0.88rem !important;    /* ~14px — Caption */
+    font-weight: 400 !important;
+    line-height: 1.29 !important;
+    letter-spacing: -0.224px !important;
+    color: var(--apple-black-48) !important;
+}
+
+.apple-caption-bold {
+    font-family: var(--font-text) !important;
+    font-size: 0.88rem !important;
+    font-weight: 600 !important;
+    line-height: 1.29 !important;
+    letter-spacing: -0.224px !important;
+    color: var(--apple-nearblack) !important;
+}
+
+.apple-micro {
+    font-family: var(--font-text) !important;
+    font-size: 0.75rem !important;     /* ~12px — Micro */
+    font-weight: 400 !important;
+    line-height: 1.33 !important;
+    letter-spacing: -0.12px !important;
+    color: var(--apple-black-48) !important;
+}
+
+.apple-micro-bold {
+    font-family: var(--font-text) !important;
+    font-size: 0.75rem !important;
+    font-weight: 600 !important;
+    line-height: 1.33 !important;
+    letter-spacing: -0.12px !important;
+    color: var(--apple-nearblack) !important;
+}
+
+.apple-link {
+    font-family: var(--font-text) !important;
+    font-size: 0.88rem !important;
+    font-weight: 400 !important;
+    line-height: 1.43 !important;
+    letter-spacing: -0.224px !important;
+    color: var(--apple-link) !important;
+    text-decoration: none !important;
+    cursor: pointer;
+    transition: opacity var(--apple-ease);
+}
+.apple-link:hover { opacity: 0.7; text-decoration: underline; }
+
+.apple-link-dark {
+    font-family: var(--font-text) !important;
+    font-size: 0.88rem !important;
+    font-weight: 400 !important;
+    line-height: 1.43 !important;
+    letter-spacing: -0.224px !important;
+    color: var(--apple-link-dark) !important;
+    text-decoration: none !important;
+    cursor: pointer;
+    transition: opacity var(--apple-ease);
+}
+.apple-link-dark:hover { opacity: 0.7; }
 
 /* ─── Navigation ───────────────────────────── */
+/* Apple glass navigation — translucent dark + blur */
 [data-testid="stNavigation"] {
-    background: rgba(37, 38, 43, 0.85) !important;
-    backdrop-filter: blur(20px) saturate(180%) !important;
-    -webkit-backdrop-filter: blur(20px) saturate(180%) !important;
-    border-bottom: 1px solid var(--color-border) !important;
-    padding: 0 1.5rem !important;
+    background: rgba(0, 0, 0, 0.80) !important;
+    backdrop-filter: saturate(180%) blur(20px) !important;
+    -webkit-backdrop-filter: saturate(180%) blur(20px) !important;
+    border-bottom: none !important;
+    padding: 0 2rem !important;
 }
 
 [data-testid="stNavSection"] a {
-    font-family: var(--font-body) !important;
-    font-size: 0.82rem !important;
+    font-family: var(--font-text) !important;
+    font-size: 0.75rem !important;      /* 12px Micro */
     font-weight: 400 !important;
-    letter-spacing: 0.04em !important;
+    letter-spacing: -0.12px !important;
     text-transform: none !important;
-    color: var(--color-text-secondary) !important;
-    transition: color var(--transition-fast) !important;
-    border-bottom: 2px solid transparent !important;
-    padding-bottom: 2px !important;
+    color: rgba(255, 255, 255, 0.80) !important;
+    transition: color var(--apple-ease) !important;
+    border-bottom: none !important;
+    padding-bottom: 0 !important;
 }
 
-[data-testid="stNavSection"] a:hover,
+[data-testid="stNavSection"] a:hover {
+    color: rgba(255, 255, 255, 1) !important;
+}
+
 [data-testid="stNavSection"] a[aria-selected="true"] {
-    color: var(--color-text-primary) !important;
+    color: #ffffff !important;
 }
 
 /* ─── Sidebar ──────────────────────────────── */
 [data-testid="stSidebar"] {
-    background: var(--color-surface) !important;
-    border-right: 1px solid var(--color-border) !important;
+    background: var(--apple-gray) !important;
+    border-right: 1px solid rgba(0, 0, 0, 0.06) !important;
 }
 
 [data-testid="stSidebarContent"] {
-    padding: 1.5rem 1.25rem !important;
+    padding: var(--sp-15) var(--sp-13) !important;
 }
 
-.sidebar-section {
-    margin-bottom: 1.5rem;
+/* ─── Hero Section ─────────────────────────── */
+/* Full-width, centered, cinematic rhythm */
+.apple-hero-section {
+    background: var(--apple-black);
+    padding: var(--sp-19) 0 var(--sp-18);
+    margin: calc(-1 * var(--sp-15)) calc(-1 * var(--sp-13)) var(--sp-16);
+    text-align: center;
+    animation: fadeInUp 600ms ease-out;
 }
 
-.sidebar-section-title {
-    font-size: 0.68rem !important;
-    font-weight: 500 !important;
-    letter-spacing: 0.08em !important;
-    text-transform: uppercase !important;
-    color: var(--color-text-muted) !important;
-    margin-bottom: 0.6rem !important;
+.apple-hero-section .apple-hero-title,
+.apple-hero-section .apple-section-title {
+    color: var(--apple-white) !important;
 }
 
-/* ─── Title Area ───────────────────────────── */
-.page-hero {
-    margin-bottom: 2rem;
+.apple-hero-section .apple-body {
+    color: var(--apple-white-80) !important;
 }
 
-.page-hero-title {
-    font-family: var(--font-body) !important;
-    font-size: 2.2rem !important;
-    font-weight: 500 !important;
-    color: var(--color-text-primary) !important;
-    letter-spacing: -0.02em !important;
-    line-height: 1.2 !important;
-    margin-bottom: 0.4rem !important;
-}
-
-.page-hero-sub {
-    font-size: 0.95rem !important;
-    color: var(--color-text-secondary) !important;
-    font-weight: 400 !important;
-    letter-spacing: 0.01em !important;
-    line-height: 1.5 !important;
+.apple-hero-section .apple-caption,
+.apple-hero-section .apple-micro {
+    color: var(--apple-white-48) !important;
 }
 
 /* ─── Hero Search ─────────────────────────── */
-.hero-search-wrapper {
-    background: var(--color-surface);
-    border: 1px solid var(--color-border);
-    border-radius: var(--radius-xl);
-    padding: 0.25rem 1.25rem;
-    margin-bottom: 1.25rem;
-    transition: border-color var(--transition-base), box-shadow var(--transition-base);
+/* Filter/Search Button style: light bg, subtle border */
+.apple-search-wrapper {
+    background: var(--apple-white);
+    border: 3px solid rgba(0, 0, 0, 0.04);
+    border-radius: var(--apple-radius-comfort);
+    padding: var(--sp-1) var(--sp-9);
+    transition: border-color var(--apple-ease), box-shadow var(--apple-ease);
+    box-shadow: var(--apple-shadow-sm);
+    margin-bottom: var(--sp-9);
 }
 
-.hero-search-wrapper:focus-within {
-    border-color: var(--color-accent);
-    box-shadow: 0 0 0 3px var(--color-accent-dim), var(--shadow-md);
+.apple-search-wrapper:focus-within {
+    border-color: var(--apple-blue);
+    box-shadow: 0 0 0 4px rgba(0, 113, 227, 0.12), var(--apple-shadow-sm);
 }
 
-/* ─── Filter Chips / Inputs ─────────────────── */
-.filters-row {
+/* ─── Filter Row ─────────────────────────── */
+.apple-filters-row {
     display: flex;
-    gap: 0.5rem;
+    gap: var(--sp-6);
     flex-wrap: wrap;
-    margin-bottom: 1rem;
+    margin-bottom: var(--sp-9);
     align-items: center;
 }
 
+/* Filter pill buttons — Apple style */
+.apple-filter-pill {
+    background: var(--apple-btn-light);
+    border: 3px solid rgba(0, 0, 0, 0.04);
+    border-radius: var(--apple-radius-comfort);
+    padding: var(--sp-1) var(--sp-9);
+    font-family: var(--font-text) !important;
+    font-size: 0.88rem !important;
+    font-weight: 400 !important;
+    color: var(--apple-black-80) !important;
+    cursor: pointer;
+    transition: border-color var(--apple-ease), background var(--apple-ease);
+    line-height: 1.43 !important;
+    letter-spacing: -0.224px !important;
+}
+
+.apple-filter-pill:hover {
+    border-color: rgba(0, 0, 0, 0.12);
+}
+
+.apple-filter-pill:focus {
+    outline: 2px solid var(--apple-blue);
+    outline-offset: 2px;
+}
+
+/* ─── Streamlit Inputs Override ──────────────── */
 [data-testid="stNumberInput"] > div > div > input,
 [data-testid="stTextInput"] > div > div > input {
-    background: var(--color-surface) !important;
-    border: 1px solid var(--color-border) !important;
-    border-radius: var(--radius-md) !important;
-    color: var(--color-text-primary) !important;
-    font-size: 0.82rem !important;
-    padding: 0.3rem 0.75rem !important;
+    background: var(--apple-btn-light) !important;
+    border: 3px solid rgba(0, 0, 0, 0.04) !important;
+    border-radius: var(--apple-radius-comfort) !important;
+    color: var(--apple-nearblack) !important;
+    font-size: 0.88rem !important;
+    padding: var(--sp-1) var(--sp-9) !important;
     height: auto !important;
-    transition: border-color var(--transition-fast), box-shadow var(--transition-fast) !important;
+    font-family: var(--font-text) !important;
+    letter-spacing: -0.224px !important;
+    transition: border-color var(--apple-ease), box-shadow var(--apple-ease) !important;
 }
 
 [data-testid="stNumberInput"] > div > div > input:focus,
 [data-testid="stTextInput"] > div > div > input:focus {
-    border-color: var(--color-accent) !important;
-    box-shadow: 0 0 0 3px var(--color-accent-dim) !important;
+    border-color: var(--apple-blue) !important;
+    box-shadow: 0 0 0 4px rgba(0, 113, 227, 0.12) !important;
     outline: none !important;
 }
 
 [data-testid="stNumberInput"] > div > label,
 [data-testid="stTextInput"] > div > label {
-    font-size: 0.7rem !important;
-    color: var(--color-text-muted) !important;
-    letter-spacing: 0.04em !important;
+    font-size: 0.75rem !important;
+    font-weight: 600 !important;
+    letter-spacing: -0.12px !important;
+    color: var(--apple-black-48) !important;
+    margin-bottom: var(--sp-1) !important;
+    font-family: var(--font-text) !important;
 }
 
 /* Slider */
 [data-testid="stSlider"] > div > div > div > div {
-    background: rgba(255, 255, 255, 0.1) !important;
+    background: rgba(0, 0, 0, 0.08) !important;
+    border-radius: var(--apple-radius-pill) !important;
+    height: 4px !important;
 }
 
 [data-testid="stSlider"] > div > div > div > div > div {
-    background: var(--color-accent) !important;
+    background: var(--apple-blue) !important;
+    border-radius: var(--apple-radius-pill) !important;
 }
 
 [data-testid="stSlider"] > div > label {
-    font-size: 0.7rem !important;
-    color: var(--color-text-muted) !important;
+    font-size: 0.75rem !important;
+    font-weight: 600 !important;
+    letter-spacing: -0.12px !important;
+    color: var(--apple-black-48) !important;
+    font-family: var(--font-text) !important;
 }
 
-/* ─── Generate Button ─────────────────────── */
-.btn-generate {
+[data-testid="stSlider"] > div > div > span {
+    font-size: 0.75rem !important;
+    color: var(--apple-black-48) !important;
+    font-family: var(--font-text) !important;
+}
+
+/* ─── Buttons ─────────────────────────────── */
+/* Primary CTA — Apple Blue */
+.stButton > button,
+.stDownloadButton > button {
+    font-family: var(--font-text) !important;
+    border-radius: var(--apple-radius-std) !important;
+    transition: all var(--apple-ease) !important;
+    font-weight: 400 !important;
+    border: none !important;
+}
+
+.stButton > button {
+    background: var(--apple-nearblack) !important;
+    border: none !important;
+    color: var(--apple-white) !important;
+    font-size: 1rem !important;
+    padding: var(--sp-6) var(--sp-10) !important;
+}
+
+.stButton > button:hover {
+    background: #000 !important;
+    transform: none !important;
+}
+
+.stButton > button:focus {
+    outline: 2px solid var(--apple-blue) !important;
+    outline-offset: 2px !important;
+}
+
+/* Download buttons */
+.stDownloadButton > button {
+    background: var(--apple-white) !important;
+    border: 3px solid rgba(0, 0, 0, 0.06) !important;
+    color: var(--apple-nearblack) !important;
+    font-size: 0.88rem !important;
+    padding: var(--sp-5) var(--sp-10) !important;
+    font-weight: 400 !important;
+}
+
+.stDownloadButton > button:hover {
+    background: var(--apple-btn-active) !important;
+    border-color: rgba(0, 0, 0, 0.12) !important;
+}
+
+/* Primary Blue Button — for Generate */
+.apple-btn-primary {
     display: inline-flex !important;
     align-items: center !important;
-    gap: 0.5rem !important;
-    background: var(--color-accent) !important;
-    color: #191a1f !important;
+    gap: var(--sp-5) !important;
+    background: var(--apple-blue) !important;
+    color: var(--apple-white) !important;
     border: none !important;
-    border-radius: var(--radius-lg) !important;
-    padding: 0.8rem 2.25rem !important;
-    font-family: var(--font-body) !important;
-    font-size: 0.9rem !important;
-    font-weight: 500 !important;
-    box-shadow: var(--shadow-md) !important;
-    transition: all var(--transition-base) !important;
+    border-radius: var(--apple-radius-std) !important;
+    padding: var(--sp-6) var(--sp-11) !important;
+    font-family: var(--font-text) !important;
+    font-size: 1.06rem !important;
+    font-weight: 400 !important;
+    letter-spacing: -0.374px !important;
+    line-height: 1.0 !important;
     cursor: pointer !important;
-    letter-spacing: 0.01em !important;
-}
-
-.btn-generate:hover {
-    background: var(--color-accent-hover) !important;
-    box-shadow: var(--shadow-lg) !important;
-    transform: translateY(-1px);
-}
-
-.btn-generate:active {
-    transform: translateY(0px);
-}
-
-.btn-generate:disabled {
-    background: rgba(255, 255, 255, 0.12) !important;
-    color: var(--color-text-muted) !important;
-    cursor: not-allowed !important;
-    transform: none !important;
+    transition: background var(--apple-ease) !important;
     box-shadow: none !important;
 }
 
-/* ─── Progress ─────────────────────────────── */
-.progress-wrapper {
-    background: var(--color-surface);
-    border: 1px solid var(--color-border);
-    border-radius: var(--radius-lg);
-    padding: 1.25rem 1.5rem;
-    margin: 1rem 0;
+.apple-btn-primary:hover {
+    background: var(--apple-blue-hover) !important;
 }
 
-.progress-text {
-    font-size: 0.85rem !important;
-    color: var(--color-text-secondary) !important;
+.apple-btn-primary:focus {
+    outline: 2px solid var(--apple-blue) !important;
+    outline-offset: 3px !important;
+}
+
+.apple-btn-primary:active {
+    background: #005BB5 !important;
+}
+
+.apple-btn-primary:disabled {
+    background: rgba(0, 0, 0, 0.08) !important;
+    color: rgba(0, 0, 0, 0.3) !important;
+    cursor: not-allowed !important;
+}
+
+/* Pill CTA — Apple "Learn more" style */
+.apple-btn-pill {
+    display: inline-flex !important;
+    align-items: center !important;
+    gap: var(--sp-5) !important;
+    background: transparent !important;
+    color: var(--apple-link) !important;
+    border: 1px solid var(--apple-link) !important;
+    border-radius: var(--apple-radius-pill) !important;
+    padding: var(--sp-5) var(--sp-12) !important;
+    font-family: var(--font-text) !important;
+    font-size: 1.06rem !important;
     font-weight: 400 !important;
-    margin-bottom: 0.6rem !important;
+    line-height: 1.0 !important;
+    cursor: pointer !important;
+    transition: all var(--apple-ease) !important;
+    text-decoration: none !important;
+}
+
+.apple-btn-pill:hover {
+    background: var(--apple-link) !important;
+    color: var(--apple-white) !important;
+    text-decoration: none !important;
+}
+
+.apple-btn-pill:focus {
+    outline: 2px solid var(--apple-blue) !important;
+    outline-offset: 3px !important;
+}
+
+.apple-btn-pill:active {
+    background: #004C99 !important;
+}
+
+/* ─── Cards ─────────────────────────────── */
+[data-testid="stHorizontalBlock"] > div > div {
+    background: var(--apple-white);
+    border: none !important;
+    border-radius: var(--apple-radius-std);
+    box-shadow: var(--apple-shadow);
+    padding: var(--sp-13) var(--sp-13) !important;
+    transition: box-shadow var(--apple-ease) !important;
+}
+
+[data-testid="stHorizontalBlock"] > div > div:hover {
+    box-shadow: var(--apple-shadow-sm), 0 0 0 1px rgba(0, 0, 0, 0.04) !important;
+}
+
+/* ─── Metric ───────────────────────────────── */
+[data-testid="stMetricValue"] {
+    font-family: var(--font-text) !important;
+    font-size: 1.6rem !important;
+    font-weight: 600 !important;
+    color: var(--apple-nearblack) !important;
+    letter-spacing: -0.374px !important;
+    line-height: 1.0 !important;
+}
+
+[data-testid="stMetricLabel"] {
+    font-family: var(--font-text) !important;
+    font-size: 0.75rem !important;
+    font-weight: 600 !important;
+    letter-spacing: -0.12px !important;
+    text-transform: uppercase !important;
+    color: var(--apple-black-48) !important;
+}
+
+/* ─── Progress ─────────────────────────────── */
+.apple-progress-wrapper {
+    background: var(--apple-white);
+    border: none;
+    border-radius: var(--apple-radius-std);
+    box-shadow: var(--apple-shadow-sm);
+    padding: var(--sp-13) var(--sp-13);
+    margin: var(--sp-9) 0;
+}
+
+.apple-progress-text {
+    font-family: var(--font-text) !important;
+    font-size: 1.06rem !important;
+    color: var(--apple-black-80) !important;
+    font-weight: 400 !important;
+    letter-spacing: -0.374px !important;
+    margin-bottom: var(--sp-6) !important;
 }
 
 [data-testid="stProgressBar"] > div > div > div {
-    background: var(--color-accent) !important;
-    border-radius: var(--radius-full) !important;
+    background: var(--apple-blue) !important;
+    border-radius: var(--apple-radius-pill) !important;
     height: 4px !important;
 }
 
@@ -302,347 +624,406 @@ p, li, span, label {
 [data-testid="stTabBar"] {
     background: transparent !important;
     gap: 0 !important;
-    border-bottom: 1px solid var(--color-border) !important;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.08) !important;
 }
 
 [data-testid="stTab"] {
-    font-family: var(--font-body) !important;
-    font-size: 0.82rem !important;
+    font-family: var(--font-text) !important;
+    font-size: 0.88rem !important;
     font-weight: 400 !important;
-    color: var(--color-text-muted) !important;
+    letter-spacing: -0.224px !important;
+    color: var(--apple-black-48) !important;
     border-bottom: 2px solid transparent !important;
     background: transparent !important;
-    padding: 0.6rem 1rem !important;
-    transition: all var(--transition-fast) !important;
+    padding: var(--sp-6) var(--sp-10) !important;
+    transition: all var(--apple-ease) !important;
 }
 
 [data-testid="stTab"]:hover {
-    color: var(--color-text-secondary) !important;
+    color: var(--apple-black-80) !important;
 }
 
 [data-testid="stTab"][aria-selected="true"] {
-    color: var(--color-text-primary) !important;
-    border-bottom-color: var(--color-accent) !important;
-}
-
-/* ─── Cards (columns) ─────────────────────── */
-[data-testid="stHorizontalBlock"] > div > div {
-    background: var(--color-surface);
-    border: 1px solid var(--color-border);
-    border-radius: var(--radius-md);
-    box-shadow: none;
-    transition: border-color var(--transition-fast), background var(--transition-fast);
-    padding: 1.25rem !important;
-}
-
-[data-testid="stHorizontalBlock"] > div > div:hover {
-    border-color: var(--color-border-hover);
-    background: var(--color-surface-hover);
-}
-
-/* ─── Metric ───────────────────────────────── */
-[data-testid="stMetricValue"] {
-    font-family: var(--font-body) !important;
-    font-size: 1.6rem !important;
-    font-weight: 500 !important;
-    color: var(--color-text-primary) !important;
-    letter-spacing: -0.01em !important;
-    line-height: 1 !important;
-}
-
-[data-testid="stMetricLabel"] {
-    font-size: 0.7rem !important;
-    font-weight: 400 !important;
-    letter-spacing: 0.05em !important;
-    text-transform: uppercase !important;
-    color: var(--color-text-muted) !important;
+    color: var(--apple-nearblack) !important;
+    border-bottom-color: var(--apple-blue) !important;
 }
 
 /* ─── Expander ─────────────────────────────── */
 .streamlit-expander,
 [data-testid="stExpander"] {
-    background: var(--color-surface) !important;
-    border: 1px solid var(--color-border) !important;
-    border-radius: var(--radius-md) !important;
-    transition: border-color var(--transition-fast) !important;
+    background: var(--apple-white) !important;
+    border: 3px solid rgba(0, 0, 0, 0.04) !important;
+    border-radius: var(--apple-radius-std) !important;
+    box-shadow: var(--apple-shadow-sm) !important;
+    transition: border-color var(--apple-ease) !important;
 }
 
 .streamlit-expander:hover,
 [data-testid="stExpander"]:hover {
-    border-color: var(--color-border-hover) !important;
+    border-color: rgba(0, 0, 0, 0.10) !important;
 }
 
-/* ─── Alerts / Info Boxes ─────────────────── */
+/* ─── Alerts ─────────────────────────────── */
 .stSuccess, div[data-testid="stSuccess"] {
-    background: rgba(129, 201, 149, 0.08) !important;
-    border: 1px solid rgba(129, 201, 149, 0.2) !important;
-    border-radius: var(--radius-md) !important;
-    color: var(--color-success) !important;
-    font-size: 0.85rem !important;
+    background: rgba(52, 199, 89, 0.08) !important;
+    border: none !important;
+    border-radius: var(--apple-radius-std) !important;
+    color: #248a3d !important;
+    font-size: 0.88rem !important;
+    font-family: var(--font-text) !important;
+    padding: var(--sp-9) var(--sp-10) !important;
 }
 
 .stError, div[data-testid="stError"] {
-    background: rgba(242, 139, 130, 0.08) !important;
-    border: 1px solid rgba(242, 139, 130, 0.2) !important;
-    border-radius: var(--radius-md) !important;
-    color: var(--color-error) !important;
-    font-size: 0.85rem !important;
+    background: rgba(255, 59, 48, 0.08) !important;
+    border: none !important;
+    border-radius: var(--apple-radius-std) !important;
+    color: #c11818 !important;
+    font-size: 0.88rem !important;
+    font-family: var(--font-text) !important;
+    padding: var(--sp-9) var(--sp-10) !important;
 }
 
 .stWarning, div[data-testid="stWarning"] {
-    background: rgba(253, 214, 99, 0.08) !important;
-    border: 1px solid rgba(253, 214, 99, 0.2) !important;
-    border-radius: var(--radius-md) !important;
-    color: var(--color-warning) !important;
-    font-size: 0.85rem !important;
+    background: rgba(255, 204, 0, 0.12) !important;
+    border: none !important;
+    border-radius: var(--apple-radius-std) !important;
+    color: #997000 !important;
+    font-size: 0.88rem !important;
+    font-family: var(--font-text) !important;
+    padding: var(--sp-9) var(--sp-10) !important;
 }
 
 .stInfo, div[data-testid="stInfo"] {
-    background: var(--color-accent-dim) !important;
-    border: 1px solid rgba(138, 180, 248, 0.2) !important;
-    border-radius: var(--radius-md) !important;
-    color: var(--color-accent) !important;
-    font-size: 0.85rem !important;
+    background: rgba(0, 113, 227, 0.06) !important;
+    border: none !important;
+    border-radius: var(--apple-radius-std) !important;
+    color: var(--apple-blue) !important;
+    font-size: 0.88rem !important;
+    font-family: var(--font-text) !important;
+    padding: var(--sp-9) var(--sp-10) !important;
 }
 
 /* ─── Markdown Content ─────────────────────── */
 .stMarkdown h1,
 .stMarkdown h2,
-.stMarkdown h3 {
-    font-family: var(--font-body) !important;
-    font-weight: 500;
-    color: var(--color-text-primary) !important;
+.stMarkdown h3,
+.stMarkdown h4 {
+    font-family: var(--font-display) !important;
+    color: var(--apple-nearblack) !important;
 }
 
 .stMarkdown h2 {
-    border-bottom: 1px solid var(--color-border) !important;
-    padding-bottom: 0.4rem !important;
+    font-size: 1.5rem !important;
+    font-weight: 600 !important;
+    line-height: 1.1 !important;
+    letter-spacing: -0.02em !important;
+    margin-top: var(--sp-13) !important;
+    margin-bottom: var(--sp-6) !important;
+}
+
+.stMarkdown h3 {
+    font-size: 1.2rem !important;
+    font-weight: 600 !important;
+    line-height: 1.2 !important;
+    margin-top: var(--sp-10) !important;
+    margin-bottom: var(--sp-5) !important;
 }
 
 .stMarkdown p {
-    line-height: 1.75 !important;
-    color: var(--color-text-secondary) !important;
+    line-height: 1.65 !important;
+    color: var(--apple-black-80) !important;
+    font-size: 1.06rem !important;
+    letter-spacing: -0.374px !important;
+    margin-bottom: var(--sp-9) !important;
 }
 
 .stMarkdown code {
     font-family: var(--font-mono) !important;
     font-size: 0.85em !important;
-    background: rgba(138, 180, 248, 0.08) !important;
+    background: rgba(0, 0, 0, 0.04) !important;
     padding: 0.15em 0.4em !important;
-    border-radius: 4px !important;
-    color: var(--color-accent) !important;
-}
-
-/* ─── Buttons ─────────────────────────────── */
-.stButton > button,
-.stDownloadButton > button {
-    font-family: var(--font-body) !important;
-    border-radius: var(--radius-md) !important;
-    transition: all var(--transition-fast) !important;
-    font-weight: 400 !important;
-}
-
-.stButton > button {
-    background: var(--color-surface) !important;
-    border: 1px solid var(--color-border) !important;
-    color: var(--color-text-primary) !important;
-}
-
-.stButton > button:hover {
-    background: var(--color-surface-hover) !important;
-    border-color: var(--color-border-hover) !important;
-    transform: translateY(-1px);
-}
-
-.stDownloadButton > button {
-    background: var(--color-surface) !important;
-    border: 1px solid var(--color-border) !important;
-    color: var(--color-text-secondary) !important;
-    font-size: 0.82rem !important;
-}
-
-.stDownloadButton > button:hover {
-    border-color: var(--color-accent) !important;
-    color: var(--color-accent) !important;
-    transform: translateY(-1px);
+    border-radius: var(--apple-radius-micro) !important;
+    color: var(--apple-blue) !important;
 }
 
 /* ─── Divider ──────────────────────────────── */
 hr {
     border: none !important;
-    border-top: 1px solid var(--color-border) !important;
-    margin: 1.5rem 0 !important;
-}
-
-/* ─── Container gap ─────────────────────────── */
-[data-testid="stHorizontalBlock"]:has( > div > div) {
-    gap: 0.75rem;
+    border-top: 1px solid rgba(0, 0, 0, 0.06) !important;
+    margin: var(--sp-13) 0 !important;
 }
 
 /* ─── How It Works ─────────────────────────── */
-.how-it-works {
-    background: var(--color-surface);
-    border: 1px solid var(--color-border);
-    border-radius: var(--radius-lg);
-    padding: 1.75rem 2rem;
-    margin-top: 2rem;
+.apple-how-it-works {
+    background: var(--apple-white);
+    border: none;
+    border-radius: var(--apple-radius-lg);
+    box-shadow: var(--apple-shadow);
+    padding: var(--sp-16) var(--sp-16);
+    margin-top: var(--sp-18);
+    animation: fadeInUp 600ms ease-out 200ms both;
 }
 
-.how-it-works h3 {
-    font-family: var(--font-body) !important;
-    font-size: 1.2rem !important;
-    font-weight: 500 !important;
-    color: var(--color-text-primary) !important;
-    margin-bottom: 1rem !important;
+.apple-how-it-works h3 {
+    font-family: var(--font-display) !important;
+    font-size: 1.75rem !important;
+    font-weight: 600 !important;
+    color: var(--apple-nearblack) !important;
+    letter-spacing: -0.02em !important;
+    line-height: 1.1 !important;
+    margin-bottom: var(--sp-9) !important;
 }
 
-.how-it-works ol {
-    padding-left: 1.25rem !important;
+.apple-how-it-works ol {
+    padding-left: var(--sp-13) !important;
+    margin: 0 !important;
 }
 
-.how-it-works li {
-    font-size: 0.88rem !important;
-    color: var(--color-text-secondary) !important;
-    line-height: 1.65 !important;
-    margin-bottom: 0.35rem !important;
+.apple-how-it-works li {
+    font-size: 1.06rem !important;
+    color: var(--apple-black-80) !important;
+    line-height: 1.6 !important;
+    margin-bottom: var(--sp-4) !important;
+    letter-spacing: -0.374px !important;
 }
 
-.how-it-works li strong {
-    color: var(--color-text-primary) !important;
-    font-weight: 500 !important;
+.apple-how-it-works li strong {
+    color: var(--apple-nearblack) !important;
+    font-weight: 600 !important;
+}
+
+.apple-how-it-works .apple-info-strip {
+    margin-top: var(--sp-10);
+    padding: var(--sp-9) var(--sp-10);
+    background: rgba(0, 113, 227, 0.05);
+    border-radius: var(--apple-radius-std);
+    font-size: 0.88rem;
+    color: var(--apple-black-80);
+    display: flex;
+    align-items: center;
+    gap: var(--sp-5);
+}
+
+.apple-how-it-works .apple-info-strip i {
+    color: var(--apple-blue);
+    font-size: 1.1rem;
 }
 
 /* ─── Settings Page ─────────────────────────── */
-.settings-card {
-    background: var(--color-surface);
-    border: 1px solid var(--color-border);
-    border-radius: var(--radius-lg);
-    padding: 1.5rem 1.75rem;
-    margin-bottom: 1.5rem;
+.apple-settings-card {
+    background: var(--apple-white);
+    border: none;
+    border-radius: var(--apple-radius-std);
+    box-shadow: var(--apple-shadow-sm);
+    padding: var(--sp-13) var(--sp-15);
+    margin-bottom: var(--sp-12);
 }
 
-.settings-card h3 {
-    font-family: var(--font-body) !important;
-    font-size: 1.1rem !important;
-    font-weight: 500 !important;
-    color: var(--color-text-primary) !important;
-    margin-bottom: 1rem !important;
+.apple-settings-card h3 {
+    font-family: var(--font-display) !important;
+    font-size: 1.5rem !important;
+    font-weight: 600 !important;
+    color: var(--apple-nearblack) !important;
+    letter-spacing: -0.02em !important;
+    line-height: 1.1 !important;
+    margin-bottom: var(--sp-10) !important;
 }
 
-.settings-metric {
-    background: var(--color-bg);
-    border: 1px solid var(--color-border);
-    border-radius: var(--radius-md);
-    padding: 0.875rem 1rem;
-    transition: border-color var(--transition-fast) !important;
+.apple-settings-metric {
+    background: var(--apple-gray);
+    border: none;
+    border-radius: var(--apple-radius-std);
+    padding: var(--sp-9) var(--sp-10);
+    transition: background var(--apple-ease) !important;
 }
 
-.settings-metric:hover {
-    border-color: var(--color-border-hover) !important;
+.apple-settings-metric:hover {
+    background: rgba(0, 0, 0, 0.03);
 }
 
-/* ─── Paper Cards ─────────────────────────── */
-.paper-card {
-    background: rgba(255, 255, 255, 0.02);
-    border: 1px solid var(--color-border);
-    border-radius: var(--radius-md);
-    padding: 0.875rem 1rem;
-    margin-bottom: 0.5rem;
-    transition: border-color var(--transition-fast), background var(--transition-fast) !important;
+/* ─── Paper Cards (sidebar) ─────────────────── */
+.apple-paper-card {
+    background: var(--apple-white);
+    border: none;
+    border-radius: var(--apple-radius-std);
+    box-shadow: var(--apple-shadow-sm);
+    padding: var(--sp-9) var(--sp-10);
+    margin-bottom: var(--sp-6);
+    transition: box-shadow var(--apple-ease), transform var(--apple-ease) !important;
 }
 
-.paper-card:hover {
-    background: rgba(255, 255, 255, 0.04);
-    border-color: var(--color-border-hover);
+.apple-paper-card:hover {
+    box-shadow: var(--apple-shadow);
+    transform: translateY(-1px);
 }
 
-.paper-card-title {
-    font-size: 0.8rem !important;
-    font-weight: 500 !important;
-    color: var(--color-text-primary) !important;
+.apple-paper-title {
+    font-family: var(--font-text) !important;
+    font-size: 0.88rem !important;
+    font-weight: 600 !important;
+    color: var(--apple-nearblack) !important;
     line-height: 1.4 !important;
-    margin-bottom: 0.2rem !important;
+    letter-spacing: -0.224px !important;
+    margin-bottom: var(--sp-2) !important;
 }
 
-.paper-card-meta {
-    font-size: 0.7rem !important;
-    color: var(--color-text-muted) !important;
-    line-height: 1.5 !important;
-}
-
-.paper-card-abstract {
+.apple-paper-meta {
+    font-family: var(--font-text) !important;
     font-size: 0.75rem !important;
-    color: var(--color-text-secondary) !important;
+    color: var(--apple-black-48) !important;
+    line-height: 1.5 !important;
+    letter-spacing: -0.12px !important;
+}
+
+.apple-paper-abstract {
+    font-family: var(--font-text) !important;
+    font-size: 0.8rem !important;
+    color: var(--apple-black-80) !important;
     line-height: 1.55 !important;
-    margin-top: 0.35rem !important;
+    letter-spacing: -0.12px !important;
+    margin-top: var(--sp-4) !important;
 }
 
-.paper-card-link {
-    font-size: 0.72rem !important;
-    color: var(--color-accent) !important;
+.apple-paper-link {
+    font-family: var(--font-text) !important;
+    font-size: 0.75rem !important;
     font-weight: 400 !important;
+    color: var(--apple-link) !important;
+    letter-spacing: -0.12px !important;
     text-decoration: none !important;
-    margin-top: 0.3rem !important;
-    display: inline-block !important;
-    transition: color var(--transition-fast) !important;
+    margin-top: var(--sp-4) !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    gap: 2px !important;
+    transition: opacity var(--apple-ease) !important;
 }
 
-.paper-card-link:hover {
-    color: var(--color-accent-hover) !important;
-}
+.apple-paper-link:hover { opacity: 0.7; text-decoration: underline; }
 
 /* ─── Round Cards ─────────────────────────── */
-.round-card {
-    background: var(--color-surface);
-    border: 1px solid var(--color-border);
-    border-radius: var(--radius-md);
-    padding: 1.25rem 1.5rem;
-    margin-bottom: 0.75rem;
-    transition: border-color var(--transition-fast) !important;
+.apple-round-card {
+    background: var(--apple-white);
+    border: none;
+    border-radius: var(--apple-radius-std);
+    box-shadow: var(--apple-shadow-sm);
+    padding: var(--sp-13) var(--sp-13);
+    margin-bottom: var(--sp-9);
+    transition: box-shadow var(--apple-ease) !important;
 }
 
-.round-card:hover {
-    border-color: var(--color-border-hover);
+.apple-round-card:hover {
+    box-shadow: var(--apple-shadow);
 }
 
-.round-phase-label {
-    font-size: 0.72rem !important;
-    font-weight: 500 !important;
-    letter-spacing: 0.06em !important;
+.apple-round-label {
+    font-family: var(--font-text) !important;
+    font-size: 0.75rem !important;
+    font-weight: 600 !important;
+    letter-spacing: -0.12px !important;
     text-transform: uppercase !important;
-    color: var(--color-text-muted) !important;
-    margin-bottom: 0.75rem !important;
+    color: var(--apple-black-48) !important;
+    margin-bottom: var(--sp-9) !important;
+    display: flex;
+    align-items: center;
+    gap: var(--sp-3);
 }
 
-/* ─── Form / Inputs ─────────────────────────── */
+/* ─── Form ────────────────────────────────── */
 [data-testid="stForm"] {
     background: transparent !important;
+    border: none !important;
 }
 
 /* ─── Spinner ─────────────────────────────── */
 [data-testid="stSpinner"] {
-    color: var(--color-accent) !important;
+    color: var(--apple-blue) !important;
 }
 
 /* ─── Toast ─────────────────────────────── */
 [data-testid="stToast"] {
-    background: var(--color-surface) !important;
-    border: 1px solid var(--color-border) !important;
-    border-radius: var(--radius-md) !important;
-    box-shadow: var(--shadow-lg) !important;
+    background: var(--apple-white) !important;
+    border: none !important;
+    border-radius: var(--apple-radius-std) !important;
+    box-shadow: var(--apple-shadow) !important;
     backdrop-filter: blur(20px) !important;
 }
 
 /* ─── Caption ─────────────────────────────── */
 .stCaption {
-    color: var(--color-text-muted) !important;
-    font-size: 0.72rem !important;
+    color: var(--apple-black-48) !important;
+    font-size: 0.75rem !important;
+    letter-spacing: -0.12px !important;
+    font-family: var(--font-text) !important;
 }
 
 /* ─── Empty State ─────────────────────────── */
-.empty-state {
+.apple-empty-state {
     text-align: center;
-    padding: 2rem 1rem;
-    color: var(--color-text-muted);
-    font-size: 0.82rem;
+    padding: var(--sp-13) var(--sp-10);
+    color: var(--apple-black-48);
+    font-size: 0.88rem;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: var(--sp-5);
+}
+
+/* ─── Dark section helper ─────────────────── */
+/* For sections that need black background */
+.apple-dark-section {
+    background: var(--apple-black);
+    color: var(--apple-white);
+    padding: var(--sp-16) var(--sp-13);
+    margin: var(--sp-13) calc(-1 * var(--sp-13));
+    border-radius: var(--apple-radius-std);
+}
+
+.apple-dark-section .apple-body,
+.apple-dark-section .apple-caption,
+.apple-dark-section .apple-micro {
+    color: var(--apple-white-80) !important;
+}
+
+.apple-dark-section .apple-card-title,
+.apple-dark-section .apple-card-subtitle,
+.apple-dark-section h2, h3, h4 {
+    color: var(--apple-white) !important;
+}
+
+/* ─── Divider label style ─────────────────── */
+.apple-divider-label {
+    font-family: var(--font-text) !important;
+    font-size: 0.75rem !important;
+    font-weight: 600 !important;
+    letter-spacing: -0.12px !important;
+    text-transform: uppercase !important;
+    color: var(--apple-black-48) !important;
+    margin-bottom: var(--sp-8) !important;
+    margin-top: var(--sp-10) !important;
+}
+
+/* ─── Focus States (Accessibility) ─────────── */
+*:focus-visible {
+    outline: 2px solid var(--apple-blue) !important;
+    outline-offset: 2px !important;
+}
+
+/* ─── Responsive ─────────────────────────── */
+@media (max-width: 640px) {
+    .apple-hero-title {
+        font-size: 2.2rem !important;
+    }
+    .apple-section-title {
+        font-size: 1.75rem !important;
+    }
+    .apple-tile-title {
+        font-size: 1.3rem !important;
+    }
+    .apple-hero-section {
+        padding: var(--sp-16) 0 var(--sp-15);
+    }
+    .apple-filters-row {
+        gap: var(--sp-4);
+    }
 }

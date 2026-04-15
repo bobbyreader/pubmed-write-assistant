@@ -1,6 +1,6 @@
 """
 Streamlit Frontend for AI Paper Tool.
-Provides interactive paper generation with multi-round review visibility.
+Apple Design System — Clean, cinematic, binary light/dark rhythm.
 """
 import os
 import logging
@@ -25,11 +25,11 @@ st.set_page_config(
 )
 
 # ─── External Resources ──────────────────────────────
-# Google Sans + Material Icons via HTML injection
+# SF Pro via system fonts — no external CDN needed for Apple system fonts
+# Material Icons for icon accents
 st.markdown("""
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Google+Sans:wght@400;500;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <link href="https://fonts.googleapis.com/css2?family=Material+Icons" rel="stylesheet">
 """, unsafe_allow_html=True)
 
@@ -112,7 +112,7 @@ def render_paper_card(cite_id: str, meta: dict):
         authors_str = "Unknown"
     venue = meta.get("venue") or ""
     abstract = meta.get("abstract", "")
-    abstract_short = (abstract[:180] + "…") if len(abstract) > 180 else abstract
+    abstract_short = (abstract[:140] + "…") if len(abstract) > 140 else abstract
     if abstract_short == "Abstract not available.":
         abstract_short = ""
 
@@ -120,11 +120,11 @@ def render_paper_card(cite_id: str, meta: dict):
     label = "View on PubMed" if "pubmed" in url else "View Source"
 
     st.markdown(f"""
-    <div class="paper-card">
-      <div class="paper-card-title">{cite_id} {title[:70]}{'…' if len(title) > 70 else ''}</div>
-      <div class="paper-card-meta">{authors_str} &middot; {year}{' &middot; ' + venue if venue else ''}</div>
-      {f'<div class="paper-card-abstract">{abstract_short}</div>' if abstract_short else ''}
-      {f'<a class="paper-card-link" href="{url}" target="_blank"><i class="material-icons" style="font-size:0.9rem;vertical-align:middle;margin-right:3px;">open_in_new</i>{label}</a>' if url else ''}
+    <div class="apple-paper-card">
+      <div class="apple-paper-title">{cite_id} {title[:65]}{'…' if len(title) > 65 else ''}</div>
+      <div class="apple-paper-meta">{authors_str} &middot; {year}{' &middot; ' + venue if venue else ''}</div>
+      {f'<div class="apple-paper-abstract">{abstract_short}</div>' if abstract_short else ''}
+      {f'<a class="apple-paper-link" href="{url}" target="_blank"><i class="material-icons" style="font-size:0.8rem;vertical-align:middle;margin-right:2px;">open_in_new</i>{label}</a>' if url else ''}
     </div>
     """, unsafe_allow_html=True)
 
@@ -139,7 +139,7 @@ def render_round_card(record):
     }
     phase_icons = {
         "search": "manage_search",
-        "write": "edit",
+        "write": "edit_note",
         "review": "visibility",
         "edit": "draw",
     }
@@ -147,18 +147,19 @@ def render_round_card(record):
     label = phase_labels.get(record.phase, record.phase.capitalize())
 
     st.markdown(f"""
-    <div class="round-card">
-      <div class="round-phase-label">
-        <i class="material-icons" style="font-size:0.85rem;vertical-align:middle;margin-right:4px;">{icon}</i> Round {record.round_num} &mdash; {label}
+    <div class="apple-round-card">
+      <div class="apple-round-label">
+        <i class="material-icons" style="font-size:0.85rem;vertical-align:middle;">{icon}</i>
+        Round {record.round_num} &mdash; {label}
       </div>
     """, unsafe_allow_html=True)
 
     if record.phase == "search":
-        st.markdown(f'<div class="progress-text"><i class="material-icons" style="font-size:0.9rem;vertical-align:middle;margin-right:4px;color:var(--color-success)">check_circle</i> {record.notes}</div>')
+        st.markdown(f'<div class="apple-progress-text"><i class="material-icons" style="font-size:0.9rem;vertical-align:middle;margin-right:4px;color:#248a3d;">check_circle</i> {record.notes}</div>')
 
     elif record.phase == "write":
         if record.draft_content:
-            st.markdown("#### Generated Draft")
+            st.markdown("### Generated Draft")
             st.markdown(record.draft_content)
 
     elif record.phase == "review":
@@ -210,62 +211,65 @@ def render_round_card(record):
         if record.error:
             st.error(f"Error: {record.error}")
 
-    st.markdown("</div>")  # close round-card
+    st.markdown("</div>")
 
 
 # ─── Page: Main ────────────────────────────────────
 def page_main():
-    st.markdown('<div class="page-hero">', unsafe_allow_html=True)
-    st.markdown('<h1 class="page-hero-title">PubMed Paper Assistant</h1>', unsafe_allow_html=True)
-    st.markdown('<p class="page-hero-sub">Generate publication-ready research papers with verified citations</p>', unsafe_allow_html=True)
+    # ─── Hero Section (Apple dark cinematic) ──────
+    st.markdown('<div class="apple-hero-section">', unsafe_allow_html=True)
+    st.markdown('<h1 class="apple-hero-title">PubMed Paper Assistant</h1>', unsafe_allow_html=True)
+    st.markdown('<p class="apple-body" style="max-width:540px;margin:0 auto;">Generate publication-ready research papers with verified citations — powered by AI, constrained by truth.</p>', unsafe_allow_html=True)
     st.markdown('</div>', unsafe_allow_html=True)
 
     # ─── Sidebar ─────────────────────────────────────
     with st.sidebar:
-        st.markdown('<div class="sidebar-section">', unsafe_allow_html=True)
-        st.markdown('<div class="sidebar-section-title">Retrieved Papers</div>', unsafe_allow_html=True)
+        st.markdown('<div class="apple-divider-label">Retrieved Papers</div>', unsafe_allow_html=True)
         citation_map = st.session_state.citation_map
         if citation_map:
             for cite_id, meta in sorted(citation_map.items()):
                 render_paper_card(cite_id, meta)
         else:
-            st.markdown('<div class="empty-state"><i class="material-icons" style="font-size:1.5rem;margin-bottom:0.5rem;display:block;color:var(--color-text-muted)">folder_open</i>Search to retrieve papers</div>', unsafe_allow_html=True)
-        st.markdown('</div>', unsafe_allow_html=True)
+            st.markdown("""
+            <div class="apple-empty-state">
+              <i class="material-icons" style="font-size:1.5rem;color:var(--apple-black-48);">folder_open</i>
+              <span class="apple-caption">Search to retrieve papers</span>
+            </div>
+            """, unsafe_allow_html=True)
 
         st.markdown('<hr>', unsafe_allow_html=True)
-        st.markdown('<div class="sidebar-section">', unsafe_allow_html=True)
-        st.markdown('<div class="sidebar-section-title">Configuration</div>', unsafe_allow_html=True)
+        st.markdown('<div class="apple-divider-label">Configuration</div>', unsafe_allow_html=True)
         env = load_env()
-        st.markdown(f'<div class="paper-card-meta">Model: <strong>{env["model"]}</strong></div>', unsafe_allow_html=True)
-        st.markdown(f'<div class="paper-card-meta" style="word-break:break-all">Endpoint: {env["base_url"]}</div>', unsafe_allow_html=True)
+        st.markdown(f'<div class="apple-paper-meta">Model: <strong>{env["model"]}</strong></div>', unsafe_allow_html=True)
+        st.markdown(f'<div class="apple-paper-meta" style="word-break:break-all">Endpoint: {env["base_url"]}</div>', unsafe_allow_html=True)
         is_cloud = bool(os.getenv("ANTHROPIC_API_KEY", ""))
         if is_cloud:
-            st.markdown('<div class="paper-card-meta" style="color:var(--color-success)"><i class="material-icons" style="font-size:0.8rem;vertical-align:middle;margin-right:4px;">lock</i>API key via environment</div>', unsafe_allow_html=True)
+            st.markdown('<div class="apple-paper-meta" style="color:#248a3d;"><i class="material-icons" style="font-size:0.75rem;vertical-align:middle;margin-right:3px;">lock</i>API key via environment</div>', unsafe_allow_html=True)
         else:
             key = env["api_key"]
             masked = (key[:4] + "****" + key[-4:]) if len(key) > 8 else "****"
-            st.markdown(f'<div class="paper-card-meta">API Key: {masked}</div>', unsafe_allow_html=True)
-        st.markdown('</div>', unsafe_allow_html=True)
+            st.markdown(f'<div class="apple-paper-meta">API Key: {masked}</div>', unsafe_allow_html=True)
 
         st.markdown('<hr>', unsafe_allow_html=True)
-        if st.button("Reset Session"):
+        if st.button("Reset Session", use_container_width=True):
             for key in list(st.session_state.keys()):
                 del st.session_state[key]
             st.rerun()
 
-    # ─── Hero Search Section ────────────────────────
-    st.markdown('<div class="hero-search-wrapper">', unsafe_allow_html=True)
+    st.markdown("")
 
+    # ─── Search Section ───────────────────────────
+    st.markdown('<div class="apple-search-wrapper">', unsafe_allow_html=True)
     topic = st.text_input(
         "",
-        placeholder="Search research topic — e.g. LLM reasoning in scientific discovery, 大语言模型在医学影像中的应用",
+        placeholder="Search research topic — e.g. LLM reasoning in scientific discovery",
         label_visibility="collapsed",
         key="hero_topic_input",
     )
     st.markdown('</div>', unsafe_allow_html=True)
 
     # ─── Filters ───────────────────────────────────
-    st.markdown('<div class="filters-row">', unsafe_allow_html=True)
+    st.markdown('<div class="apple-filters-row">', unsafe_allow_html=True)
     col1, col2, col3, col4 = st.columns([1, 1, 1, 1])
     with col1:
         search_top_k = st.slider("Papers", min_value=5, max_value=50, value=20, step=5)
@@ -283,12 +287,13 @@ def page_main():
 
     st.markdown("")
 
+    # ─── Generate Button (Apple Blue CTA) ───────────
     col_gen, _, _ = st.columns([1, 1, 1])
     with col_gen:
         disabled = st.session_state.generating or not topic.strip()
         st.markdown(f"""
-        <button class="btn-generate"{" disabled" if disabled else ""}>
-          <i class="material-icons" style="font-size:1rem;vertical-align:middle;margin-right:6px;">auto_awesome</i>
+        <button class="apple-btn-primary"{" disabled" if disabled else ""}>
+          <i class="material-icons" style="font-size:1.1rem;vertical-align:middle;">auto_awesome</i>
           &nbsp;Generate Paper
         </button>
         """, unsafe_allow_html=True)
@@ -395,7 +400,7 @@ def page_main():
         phase_icons = {
             "init": "settings",
             "research": "manage_search",
-            "write": "edit",
+            "write": "edit_note",
             "review": "visibility",
             "edit": "draw",
             "finalize": "save",
@@ -403,8 +408,11 @@ def page_main():
         icon = phase_icons.get(phase, "spinner")
         spin_animate = "animation:spin 1.5s linear infinite;" if phase in ("init", "research", "write") else ""
         st.markdown(f"""
-        <div class="progress-wrapper">
-          <div class="progress-text"><i class="material-icons" style="font-size:0.9rem;vertical-align:middle;margin-right:4px;{spin_animate}">{icon}</i> {msg}</div>
+        <div class="apple-progress-wrapper">
+          <div class="apple-progress-text">
+            <i class="material-icons" style="font-size:1rem;vertical-align:middle;margin-right:6px;{spin_animate}">{icon}</i>
+            {msg}
+          </div>
         </div>
         """, unsafe_allow_html=True)
         st.progress(frac if frac > 0 else None)
@@ -417,9 +425,8 @@ def page_main():
         result = st.session_state.pipeline_result
 
         if result.success:
-            st.success(
-                f"Done — {'terminated early (high quality)' if result.early_exit else f'completed in {len(result.rounds)} rounds'}"
-            )
+            early = "terminated early (high quality)" if result.early_exit else f"completed in {len(result.rounds)} rounds"
+            st.success(f"Done — {early}")
 
             tab1, tab2, tab3 = st.tabs([
                 "  Draft  ",
@@ -428,7 +435,7 @@ def page_main():
             ])
 
             with tab1:
-                st.markdown("#### Final Paper")
+                st.markdown("## Final Paper")
                 if result.final_draft:
                     st.markdown(result.final_draft)
                     md_content = result.final_draft + "\n\n---\n\n## References\n\n" + result.references
@@ -460,26 +467,27 @@ def page_main():
                     st.warning("No draft generated")
 
             with tab2:
-                st.markdown("#### References")
-                st.markdown(f'<div class="refs-content">{result.references}</div>', unsafe_allow_html=True)
+                st.markdown("## References")
+                st.markdown(result.references)
 
             with tab3:
-                st.markdown("#### Iteration Rounds")
+                st.markdown("## Iteration Rounds")
                 for record in st.session_state.rounds:
                     render_round_card(record)
 
-    # ─── Onboarding ─────────────────────────────────
+    # ─── Onboarding (Apple "How it works") ──────────
     if not st.session_state.started:
         st.markdown("""
-        <div class="how-it-works">
+        <div class="apple-how-it-works">
           <h3>How it works</h3>
           <ol>
             <li><strong>Enter</strong> a research topic — Chinese or English, your choice</li>
             <li><strong>Click</strong> Generate Paper — the pipeline searches literature, writes, and reviews automatically</li>
             <li><strong>Download</strong> as Markdown, Word, or PDF — all citations are verified against source papers</li>
           </ol>
-          <div style="margin-top:1rem;padding:0.75rem 1rem;background:rgba(124,111,91,0.05);border-left:3px solid var(--color-primary-light);border-radius:6px;font-size:0.85rem;color:var(--color-text-secondary);">
-            <i class="material-icons" style="font-size:0.9rem;vertical-align:middle;margin-right:4px;color:var(--color-accent)">shield</i>&nbsp; Anti-hallucination: every citation is validated against the retrieved paper map.
+          <div class="apple-info-strip">
+            <i class="material-icons" style="font-size:1rem;vertical-align:middle;">shield</i>
+            <span>Anti-hallucination: every citation is validated against the retrieved paper map.</span>
           </div>
         </div>
         """, unsafe_allow_html=True)
@@ -487,15 +495,13 @@ def page_main():
 
 # ─── Page: Settings ─────────────────────────────────
 def page_settings():
-    st.markdown('<div class="page-hero">', unsafe_allow_html=True)
-    st.markdown('<h1 class="page-hero-title">Settings</h1>', unsafe_allow_html=True)
-    st.markdown('<p class="page-hero-sub">Configure API credentials and test pipeline components</p>', unsafe_allow_html=True)
-    st.markdown('</div>', unsafe_allow_html=True)
+    st.markdown('<h1 class="apple-section-title">Settings</h1>', unsafe_allow_html=True)
+    st.markdown('<p class="apple-body">Configure API credentials and test pipeline components.</p>', unsafe_allow_html=True)
 
     tab_api, tab_debug = st.tabs(["  API Configuration  ", "  Debug Console  "])
 
     with tab_api:
-        st.markdown('<div class="settings-card">', unsafe_allow_html=True)
+        st.markdown('<div class="apple-settings-card">', unsafe_allow_html=True)
         st.markdown("<h3>API Configuration</h3>", unsafe_allow_html=True)
 
         env_api_key = os.getenv("ANTHROPIC_API_KEY", "")
@@ -526,14 +532,17 @@ def page_settings():
                 st.form_submit_button("Save to .env")
 
         # Current config display
-        st.markdown("#### Current Configuration")
+        st.markdown("### Current Configuration")
         c1, c2, c3, c4 = st.columns(4)
+
         def metric_card(col, label, value, icon="settings"):
             with col:
                 st.markdown(f"""
-                <div class="settings-metric">
-                  <div style="font-size:0.68rem;font-weight:500;letter-spacing:0.06em;text-transform:uppercase;color:var(--color-text-muted);margin-bottom:0.4rem;"><i class="material-icons" style="font-size:0.8rem;vertical-align:middle;margin-right:3px;">{icon}</i>{label}</div>
-                  <div style="font-family:var(--font-body);font-size:0.8rem;font-weight:400;color:var(--color-text-secondary);word-break:break-all;">{value}</div>
+                <div class="apple-settings-metric">
+                  <div style="font-size:0.75rem;font-weight:600;letter-spacing:-0.12px;text-transform:uppercase;color:var(--apple-black-48);margin-bottom:var(--sp-5);display:flex;align-items:center;gap:4px;">
+                    <i class="material-icons" style="font-size:0.8rem;vertical-align:middle;">{icon}</i>{label}
+                  </div>
+                  <div style="font-family:var(--font-text);font-size:0.85rem;font-weight:400;color:var(--apple-black-80);word-break:break-all;">{value}</div>
                 </div>
                 """, unsafe_allow_html=True)
 
@@ -554,7 +563,7 @@ def page_settings():
         st.markdown("</div>", unsafe_allow_html=True)
 
     with tab_debug:
-        st.markdown('<div class="settings-card">', unsafe_allow_html=True)
+        st.markdown('<div class="apple-settings-card">', unsafe_allow_html=True)
         st.markdown("<h3>Debug Console</h3>")
         st.caption("Test pipeline components independently before running the full pipeline.")
 
@@ -598,7 +607,7 @@ def page_settings():
                     yr = p.get("year", "?")
                     title = p.get("title", "N/A")[:90]
                     aths = ", ".join(p.get("authors", [])[:3])
-                    st.markdown(f"&nbsp;&nbsp;**[{yr}]** {title}", unsafe_allow_html=True)
+                    st.markdown(f"&nbsp;&nbsp;**[{yr}]** {title}")
                     st.caption(f"&nbsp;&nbsp;&nbsp;{aths}")
 
         st.markdown("<hr style='margin:1.5rem 0'>", unsafe_allow_html=True)
@@ -720,9 +729,9 @@ def page_settings():
                 data = dry_result["data"]
                 count = dry_result.get("papers_count", "?")
                 st.success(f"Dry run succeeded — {count} papers processed")
-                st.markdown("#### Outline")
+                st.markdown("### Outline")
                 st.markdown(data.get("outline", ""))
-                st.markdown("#### Introduction (preview)")
+                st.markdown("### Introduction (preview)")
                 st.markdown(data.get("introduction", "")[:800] + "…" if data.get("introduction") else "")
             else:
                 st.error(f"Dry run failed: {dry_result.get('error', 'Unknown error')}")
