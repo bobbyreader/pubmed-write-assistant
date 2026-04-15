@@ -1,6 +1,7 @@
 """
 Streamlit Frontend for AI Paper Tool.
 Apple Design System — Clean, cinematic, binary light/dark rhythm.
+BUILD: 2026-04-15T13:35+08:00
 """
 import os
 import logging
