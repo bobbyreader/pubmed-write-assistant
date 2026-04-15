@@ -2,7 +2,6 @@
 Streamlit Frontend for AI Paper Tool.
 Provides interactive paper generation with multi-round review visibility.
 """
-
 import os
 import logging
 import threading
@@ -21,17 +20,26 @@ logger = logging.getLogger(__name__)
 
 st.set_page_config(
     page_title="PubMed Paper Assistant",
-    page_icon="📄",
+    page_icon="",
     layout="wide",
-    initial_sidebar_state="collapsed",
+    initial_sidebar_state="expanded",
 )
+
+# ─── External Resources ──────────────────────────────
+# Font Awesome 6 + Google Fonts via HTML injection
+st.markdown("""
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" integrity="sha512-DTOQO9RWCH3ppGqcWaEA1BIZOC6xxalwEsw9c2QQeAIftl+Vegovlnee1c9QX4TctnWMn13TZye+giMm8e2LwA==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;0,700;1,400&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;1,9..40,400&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+""", unsafe_allow_html=True)
 
 # Custom CSS
 with open(os.path.join(os.path.dirname(__file__), ".streamlit", "style.css")) as f:
     st.markdown(f"<style>{f.read()}</style>", unsafe_allow_html=True)
 
 
-# ─── Session State ────────────────────────────────────────────
+# ─── Session State ─────────────────────────────────
 def _init_state():
     defaults = {
         "citation_map": {},
@@ -46,11 +54,13 @@ def _init_state():
         "pipeline_progress_msg": "",
         "pipeline_progress_fraction": 0.0,
         "progress_queue": None,
-        # Debug state
         "debug_api_result": None,
         "debug_search_result": None,
         "debug_api_loading": False,
         "debug_search_loading": False,
+        "dry_running": False,
+        "dry_topic": "",
+        "dry_result": None,
     }
     for key, val in defaults.items():
         if key not in st.session_state:
@@ -60,9 +70,8 @@ def _init_state():
 _init_state()
 
 
-# ─── Helpers ─────────────────────────────────────────────────
+# ─── Helpers ──────────────────────────────────────
 def load_env():
-    """Load current env vars into session state for the Settings form."""
     from dotenv import load_dotenv
     load_dotenv(override=True)
     return {
@@ -74,7 +83,6 @@ def load_env():
 
 
 def save_env(api_key: str, base_url: str, model: str, ss_api_key: str = "") -> tuple[bool, str]:
-    """Save env vars to .env file."""
     try:
         env_path = os.path.join(os.path.dirname(__file__), ".env")
         with open(env_path, "w") as f:
@@ -83,7 +91,6 @@ def save_env(api_key: str, base_url: str, model: str, ss_api_key: str = "") -> t
             f.write(f"ANTHROPIC_MODEL={model}\n")
             if ss_api_key.strip():
                 f.write(f"SEMANTICSCHOLAR_API_KEY={ss_api_key.strip()}\n")
-        # Reload into current process
         os.environ["ANTHROPIC_API_KEY"] = api_key
         os.environ["ANTHROPIC_BASE_URL"] = base_url
         os.environ["ANTHROPIC_MODEL"] = model
@@ -93,176 +100,203 @@ def save_env(api_key: str, base_url: str, model: str, ss_api_key: str = "") -> t
         return False, str(e)
 
 
+# ─── Render: Paper Card (sidebar) ─────────────────
 def render_paper_card(cite_id: str, meta: dict):
-    """Render a single paper card."""
     title = meta.get("title", "Unknown Title")
     year = meta.get("year", "n.d.")
     authors = meta.get("authors", [])
     if isinstance(authors, list) and authors:
         authors_str = ", ".join(authors[:2])
         if len(authors) > 2:
-            authors_str += " et al."
+            authors_str += " + others"
     else:
         authors_str = "Unknown"
     venue = meta.get("venue") or ""
     abstract = meta.get("abstract", "")
-    abstract_short = (abstract[:200] + "...") if len(abstract) > 200 else abstract
+    abstract_short = (abstract[:180] + "…") if len(abstract) > 180 else abstract
+    if abstract_short == "Abstract not available.":
+        abstract_short = ""
 
-    with st.expander(f"{cite_id} {title[:60]}{'...' if len(title) > 60 else ''}"):
-        st.markdown(f"**{authors_str}** ({year})")
-        if venue:
-            st.caption(f"📖 {venue}")
-        if abstract_short and abstract_short != "Abstract not available.":
-            st.info(f"**Abstract:** {abstract_short}")
-        paper_id = meta.get("paperId", "")
-        url = meta.get("url", "")
-        if url:
-            label = "PubMed" if "pubmed" in url else "Semantic Scholar"
-            st.markdown(f"[📎 {label}]({url})")
+    url = meta.get("url", "")
+    label = "View on PubMed" if "pubmed" in url else "View Source"
+
+    st.markdown(f"""
+    <div class="paper-card">
+      <div class="paper-card-title">{cite_id} {title[:70]}{'…' if len(title) > 70 else ''}</div>
+      <div class="paper-card-meta">{authors_str} &middot; {year}{' &middot; ' + venue if venue else ''}</div>
+      {f'<div class="paper-card-abstract">{abstract_short}</div>' if abstract_short else ''}
+      {f'<a class="paper-card-link" href="{url}" target="_blank"><i class="fa-solid fa-arrow-up-right-from-square"></i> {label}</a>' if url else ''}
+    </div>
+    """, unsafe_allow_html=True)
 
 
+# ─── Render: Round Card ───────────────────────────
 def render_round_card(record):
-    """Render a round record in an expander."""
-    phase_icons = {
-        "search": "🔍",
-        "write": "✍️",
-        "review": "🔎",
-        "edit": "✏️",
+    phase_labels = {
+        "search": "Literature Search",
+        "write": "Draft Generation",
+        "review": "Peer Review",
+        "edit": "Editorial Revision",
     }
-    icon = phase_icons.get(record.phase, "📋")
-    label = f"Round {record.round_num} — {icon} {record.phase.capitalize()}"
+    phase_icons = {
+        "search": "fa-magnifying-glass",
+        "write": "fa-pen-nib",
+        "review": "fa-eye",
+        "edit": "fa-pen",
+    }
+    icon = phase_icons.get(record.phase, "fa-circle")
+    label = phase_labels.get(record.phase, record.phase.capitalize())
 
-    with st.container(border=True):
-        st.markdown(f"**{label}**")
-        if record.phase == "search":
-            st.success(f"✅ Found papers: {record.notes}")
-        elif record.phase == "write":
-            if record.draft_content:
-                st.markdown("### 📝 Generated Draft")
-                st.markdown(record.draft_content)
-        elif record.phase == "review":
-            if record.review_content:
-                rc = record.review_content
-                score = rc.get("score", 0)
-                cite_acc = rc.get("citation_accuracy_score", 10)
-                col1, col2 = st.columns(2)
-                with col1:
-                    st.metric("Overall Score", f"{score}/10")
-                with col2:
-                    st.metric("Citation Accuracy", f"{cite_acc}/10")
-                st.progress(score / 10, text="Quality Score")
+    st.markdown(f"""
+    <div class="round-card">
+      <div class="round-phase-label">
+        <i class="fa-solid {icon}"></i>&nbsp; Round {record.round_num} &mdash; {label}
+      </div>
+    """, unsafe_allow_html=True)
 
-                if rc.get("hallucination_flags"):
-                    st.error(f"⚠️ Hallucinated citations: {rc['hallucination_flags']}")
+    if record.phase == "search":
+        st.markdown(f'<div class="progress-text"><i class="fa-solid fa-check" style="color:var(--color-success)"></i>&nbsp; {record.notes}</div>')
 
-                if rc.get("strengths"):
-                    with st.expander("✅ Strengths"):
-                        for s in rc["strengths"]:
-                            st.write(f"- {s}")
-                if rc.get("weaknesses"):
-                    with st.expander("⚠️ Weaknesses"):
-                        for w in rc["weaknesses"]:
-                            st.write(f"- {w}")
-                if rc.get("suggestions"):
-                    with st.expander("💡 Suggestions"):
-                        for sg in rc["suggestions"]:
-                            st.write(f"- **[{sg.get('section','')}]** {sg.get('suggestion','')}")
-                if rc.get("summary"):
-                    st.markdown(f"**Summary:** {rc['summary']}")
-            if record.error:
-                st.error(f"Error: {record.error}")
-        elif record.phase == "edit":
-            if record.edit_content:
-                ec = record.edit_content
-                changes = ec.get("changes_made", [])
-                st.success(f"Changes made: {', '.join(changes) if changes else 'None'}")
-                if ec.get("revised_draft"):
-                    with st.expander("📄 Revised Draft"):
-                        st.markdown(ec["revised_draft"])
-                unresolved = ec.get("unresolved_issues", [])
-                if unresolved:
-                    st.warning(f"Unresolved: {unresolved}")
-            if record.error:
-                st.error(f"Error: {record.error}")
+    elif record.phase == "write":
+        if record.draft_content:
+            st.markdown("#### Generated Draft")
+            st.markdown(record.draft_content)
+
+    elif record.phase == "review":
+        if record.review_content:
+            rc = record.review_content
+            score = rc.get("score", 0)
+            cite_acc = rc.get("citation_accuracy_score", 10)
+            col1, col2 = st.columns(2)
+            with col1:
+                st.metric("Overall Score", f"{score}/10")
+            with col2:
+                st.metric("Citation Accuracy", f"{cite_acc}/10")
+            st.progress(score / 10, text=f"Quality score: {score}/10")
+
+            if rc.get("hallucination_flags"):
+                st.error(f"**Hallucination detected:** {', '.join(rc['hallucination_flags'])}")
+
+            if rc.get("strengths"):
+                with st.expander("Strengths"):
+                    for s in rc["strengths"]:
+                        st.write(f"&nbsp;&nbsp;&nbsp;{s}")
+            if rc.get("weaknesses"):
+                with st.expander("Areas for Improvement"):
+                    for w in rc["weaknesses"]:
+                        st.write(f"&nbsp;&nbsp;&nbsp;{w}")
+            if rc.get("suggestions"):
+                with st.expander("Suggestions"):
+                    for sg in rc["suggestions"]:
+                        st.write(f"**{sg.get('section', '')}** — {sg.get('suggestion', '')}")
+            if rc.get("summary"):
+                st.markdown(f"**Reviewer's Summary:** {rc['summary']}")
+        if record.error:
+            st.error(f"Error: {record.error}")
+
+    elif record.phase == "edit":
+        if record.edit_content:
+            ec = record.edit_content
+            changes = ec.get("changes_made", [])
+            if changes:
+                st.success(f"Changes applied: {', '.join(changes)}")
+            else:
+                st.success("No further changes needed")
+            if ec.get("revised_draft"):
+                with st.expander("Revised Draft"):
+                    st.markdown(ec["revised_draft"])
+            unresolved = ec.get("unresolved_issues", [])
+            if unresolved:
+                st.warning(f"Unresolved: {', '.join(unresolved)}")
+        if record.error:
+            st.error(f"Error: {record.error}")
+
+    st.markdown("</div>")  # close round-card
 
 
-# ─── Page: Main ──────────────────────────────────────────────
+# ─── Page: Main ────────────────────────────────────
 def page_main():
-    st.markdown('<p class="main-title">📄 PubMed Paper Assistant</p>', unsafe_allow_html=True)
-    st.markdown('<p class="sub-title">Generate publication-ready research papers with verified citations</p>', unsafe_allow_html=True)
+    st.markdown('<div class="page-hero">', unsafe_allow_html=True)
+    st.markdown('<h1 class="page-hero-title">PubMed Paper Assistant</h1>', unsafe_allow_html=True)
+    st.markdown('<p class="page-hero-sub">Generate publication-ready research papers with verified citations</p>', unsafe_allow_html=True)
+    st.markdown('</div>', unsafe_allow_html=True)
 
-    # ─── Sidebar ─────────────────────────────────────────────
+    # ─── Sidebar ─────────────────────────────────────
     with st.sidebar:
-        st.header("📚 Retrieved Papers")
+        st.markdown('<div class="sidebar-section">', unsafe_allow_html=True)
+        st.markdown('<div class="sidebar-section-title">Retrieved Papers</div>', unsafe_allow_html=True)
         citation_map = st.session_state.citation_map
         if citation_map:
             for cite_id, meta in sorted(citation_map.items()):
                 render_paper_card(cite_id, meta)
         else:
-            st.info("Papers will appear here after search")
+            st.markdown('<div class="empty-state"><i class="fa-regular fa-folder-open" style="font-size:1.5rem;margin-bottom:0.5rem;display:block;color:var(--color-text-muted)"></i>Search to retrieve papers</div>', unsafe_allow_html=True)
+        st.markdown('</div>', unsafe_allow_html=True)
 
-        st.divider()
-        st.header("⚙️ Quick Settings")
-        env_api_key = os.getenv("ANTHROPIC_API_KEY", "")
-        is_cloud_deployed = bool(env_api_key)
+        st.markdown('<hr>', unsafe_allow_html=True)
+        st.markdown('<div class="sidebar-section">', unsafe_allow_html=True)
+        st.markdown('<div class="sidebar-section-title">Configuration</div>', unsafe_allow_html=True)
         env = load_env()
-        st.text(f"Model: {env['model']}")
-        st.text(f"Base URL: {env['base_url']}")
-        if is_cloud_deployed:
-            st.text("API Key: ●●●●●●●●●●")
+        st.markdown(f'<div class="paper-card-meta">Model: <strong>{env["model"]}</strong></div>', unsafe_allow_html=True)
+        st.markdown(f'<div class="paper-card-meta" style="word-break:break-all">Endpoint: {env["base_url"]}</div>', unsafe_allow_html=True)
+        is_cloud = bool(os.getenv("ANTHROPIC_API_KEY", ""))
+        if is_cloud:
+            st.markdown('<div class="paper-card-meta" style="color:var(--color-success)"><i class="fa-solid fa-lock"></i>&nbsp; API key via environment</div>', unsafe_allow_html=True)
         else:
-            masked_key = env["api_key"]
-            if masked_key and len(masked_key) > 8:
-                masked_key = masked_key[:4] + "****" + masked_key[-4:]
-            st.text(f"API Key: {masked_key}")
+            key = env["api_key"]
+            masked = (key[:4] + "****" + key[-4:]) if len(key) > 8 else "****"
+            st.markdown(f'<div class="paper-card-meta">API Key: {masked}</div>', unsafe_allow_html=True)
+        st.markdown('</div>', unsafe_allow_html=True)
 
-        st.divider()
-        if st.button("🗑️ Reset Session"):
+        st.markdown('<hr>', unsafe_allow_html=True)
+        if st.button("Reset Session", icon="fa-arrows-rotate"):
             for key in list(st.session_state.keys()):
                 del st.session_state[key]
             st.rerun()
 
-    # ─── Input ───────────────────────────────────────────────
-    topic = st.text_input(
-        "🔬 Research Topic",
-        placeholder="e.g., LLM reasoning in scientific discovery, or 大语言模型在科学发现中的应用",
-        help="Enter your research topic in Chinese or English",
-    )
-
-    # ─── Hero Search ────────────────────────────────────────
-    st.markdown('<p class="main-title">📄 PubMed Paper Assistant</p>', unsafe_allow_html=True)
-    st.markdown('<p class="sub-title">Generate publication-ready research papers with verified citations</p>', unsafe_allow_html=True)
+    # ─── Hero Search Section ────────────────────────
+    st.markdown('<div class="hero-search-wrapper">', unsafe_allow_html=True)
 
     topic = st.text_input(
         "",
-        placeholder="Search research topic... e.g. LLM reasoning in scientific discovery",
-        help="Enter your research topic in Chinese or English",
+        placeholder="Search research topic — e.g. LLM reasoning in scientific discovery, 大语言模型在医学影像中的应用",
         label_visibility="collapsed",
+        key="hero_topic_input",
     )
+    st.markdown('</div>', unsafe_allow_html=True)
 
-    # ─── Filter Chips ─────────────────────────────────────────
-    col_f1, col_f2, col_f3, col_f4 = st.columns([1, 1, 1, 1])
-    with col_f1:
-        search_top_k = st.slider("Papers", min_value=5, max_value=50, value=20, step=5, label_visibility="collapsed")
-    with col_f2:
-        year_from = st.number_input("From", min_value=1990, max_value=2026, value=2018, label_visibility="collapsed")
-    with col_f3:
-        year_to = st.number_input("To", min_value=1990, max_value=2026, value=2026, label_visibility="collapsed")
-    with col_f4:
+    # ─── Filters ───────────────────────────────────
+    st.markdown('<div class="filters-row">', unsafe_allow_html=True)
+    col1, col2, col3, col4 = st.columns([1, 1, 1, 1])
+    with col1:
+        search_top_k = st.slider("Papers", min_value=5, max_value=50, value=20, step=5)
+    with col2:
+        year_from = st.number_input("From", min_value=1990, max_value=2026, value=2018)
+    with col3:
+        year_to = st.number_input("To", min_value=1990, max_value=2026, value=2026)
+    with col4:
         author = st.text_input("Author", placeholder="Any author", label_visibility="collapsed")
+    st.markdown('</div>', unsafe_allow_html=True)
 
     col_f5, _ = st.columns([1, 3])
     with col_f5:
-        venue = st.text_input("Journal/Venue", placeholder="Any journal", label_visibility="collapsed")
+        venue = st.text_input("Journal / Venue", placeholder="Any journal", label_visibility="collapsed")
 
-    st.markdown("")  # spacing
+    st.markdown("")
 
-    col_generate, _, _ = st.columns([1, 1, 1])
-    with col_generate:
+    col_gen, _, _ = st.columns([1, 1, 1])
+    with col_gen:
+        disabled = st.session_state.generating or not topic.strip()
+        st.markdown(f"""
+        <button class="btn-generate"{" disabled" if disabled else ""}>
+          <i class="fa-solid fa-wand-magic-sparkles"></i>
+          &nbsp;Generate Paper
+        </button>
+        """, unsafe_allow_html=True)
         generate_btn = st.button(
-            "🚀 Generate Paper",
-            type="primary",
-            disabled=st.session_state.generating or not topic.strip(),
+            "",
+            disabled=disabled,
+            label_visibility="hidden",
         )
 
     if generate_btn and topic.strip():
@@ -275,7 +309,7 @@ def page_main():
         st.session_state.pipeline_result = None
         st.session_state.citation_map = {}
         st.session_state.pipeline_progress_phase = "init"
-        st.session_state.pipeline_progress_msg = "Starting pipeline..."
+        st.session_state.pipeline_progress_msg = "Starting pipeline…"
         st.session_state.pipeline_progress_fraction = 0.0
 
         q: queue.Queue = queue.Queue()
@@ -324,11 +358,10 @@ def page_main():
         t.start()
         st.rerun()
 
-    # ─── Poll progress from background thread ───────────────────
+    # ─── Poll progress ─────────────────────────────
     if st.session_state.generating and not st.session_state.generating_done:
         q = st.session_state.progress_queue
         if q is not None:
-            # Drain all queued messages
             while True:
                 try:
                     item = q.get_nowait()
@@ -354,7 +387,6 @@ def page_main():
                         st.rerun()
                 except queue.Empty:
                     break
-        # Re-rerun to keep polling
         time.sleep(1)
         st.rerun()
 
@@ -362,204 +394,198 @@ def page_main():
         phase = st.session_state.pipeline_progress_phase
         msg = st.session_state.pipeline_progress_msg
         frac = st.session_state.pipeline_progress_fraction
-        phase_icons = {"init": "🔧", "research": "🔍", "write": "✍️", "review": "🔎", "edit": "✏️", "finalize": "📋"}
-        icon = phase_icons.get(phase, "⏳")
-        st.info(f"{icon} **{msg}**")
+        phase_icons = {
+            "init": "fa-gears",
+            "research": "fa-magnifying-glass",
+            "write": "fa-pen-nib",
+            "review": "fa-eye",
+            "edit": "fa-pen",
+            "finalize": "fa-floppy-disk",
+        }
+        icon = phase_icons.get(phase, "fa-spinner")
+        spin = " fa-spin" if phase in ("init", "research", "write") else ""
+        st.markdown(f"""
+        <div class="progress-wrapper">
+          <div class="progress-text"><i class="fa-solid {icon}{spin}"></i>&nbsp; {msg}</div>
+        </div>
+        """, unsafe_allow_html=True)
         st.progress(frac if frac > 0 else None)
 
     if st.session_state.error:
-        st.error(f"❌ {st.session_state.error}")
+        st.error(st.session_state.error)
 
-    # ─── Results ───────────────────────────────────────────────
+    # ─── Results ───────────────────────────────────
     if st.session_state.started and st.session_state.pipeline_result:
         result = st.session_state.pipeline_result
 
         if result.success:
             st.success(
-                f"✅ Done! "
-                f"{'🏃 Early exit (high score)' if result.early_exit else f'Completed in {len(result.rounds)} rounds'}"
+                f"Done — {'terminated early (high quality)' if result.early_exit else f'completed in {len(result.rounds)} rounds'}"
             )
 
-            tab_draft, tab_refs, tab_history = st.tabs(
-                ["📝 Draft", "📚 References", "🔄 Iteration History"]
-            )
+            tab1, tab2, tab3 = st.tabs([
+                "  Draft  ",
+                "  References  ",
+                "  Iteration History  ",
+            ])
 
-            with tab_draft:
-                st.markdown("### Final Paper")
+            with tab1:
+                st.markdown("#### Final Paper")
                 if result.final_draft:
                     st.markdown(result.final_draft)
                     md_content = result.final_draft + "\n\n---\n\n## References\n\n" + result.references
                     ts = datetime.now().strftime('%Y%m%d_%H%M%S')
-                    st.download_button(
-                        "📥 Markdown",
-                        data=md_content,
-                        file_name=f"paper_{ts}.md",
-                        mime="text/markdown",
-                    )
-                    st.download_button(
-                        "📄 Word (.docx)",
-                        data=export_word(md_content, st.session_state.topic),
-                        file_name=f"paper_{ts}.docx",
-                        mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-                    )
-                    st.download_button(
-                        "📑 PDF",
-                        data=export_pdf(md_content, st.session_state.topic),
-                        file_name=f"paper_{ts}.pdf",
-                        mime="application/pdf",
-                    )
+
+                    d1, d2, d3 = st.columns([1, 1, 1])
+                    with d1:
+                        st.download_button(
+                            "Markdown",
+                            data=md_content,
+                            file_name=f"paper_{ts}.md",
+                            mime="text/markdown",
+                            icon="fa-file-lines",
+                        )
+                    with d2:
+                        st.download_button(
+                            "Word",
+                            data=export_word(md_content, st.session_state.topic),
+                            file_name=f"paper_{ts}.docx",
+                            mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+                            icon="fa-file-word",
+                        )
+                    with d3:
+                        st.download_button(
+                            "PDF",
+                            data=export_pdf(md_content, st.session_state.topic),
+                            file_name=f"paper_{ts}.pdf",
+                            mime="application/pdf",
+                            icon="fa-file-pdf",
+                        )
                 else:
                     st.warning("No draft generated")
 
-            with tab_refs:
-                st.markdown("### References")
-                st.markdown(result.references)
+            with tab2:
+                st.markdown("#### References")
+                st.markdown(f'<div class="refs-content">{result.references}</div>', unsafe_allow_html=True)
 
-            with tab_history:
-                st.markdown("### Iteration Rounds")
+            with tab3:
+                st.markdown("#### Iteration Rounds")
                 for record in st.session_state.rounds:
                     render_round_card(record)
 
-    # ─── First-time hint ─────────────────────────────────────
+    # ─── Onboarding ─────────────────────────────────
     if not st.session_state.started:
         st.markdown("""
-        ### How it works
-        1. **Enter** a research topic (Chinese or English)
-        2. **Click** Generate Paper
-        3. **Download** the final paper as Markdown
+        <div class="how-it-works">
+          <h3>How it works</h3>
+          <ol>
+            <li><strong>Enter</strong> a research topic — Chinese or English, your choice</li>
+            <li><strong>Click</strong> Generate Paper — the pipeline searches literature, writes, and reviews automatically</li>
+            <li><strong>Download</strong> as Markdown, Word, or PDF — all citations are verified against source papers</li>
+          </ol>
+          <div style="margin-top:1rem;padding:0.75rem 1rem;background:rgba(124,111,91,0.05);border-left:3px solid var(--color-primary-light);border-radius:6px;font-size:0.85rem;color:var(--color-text-secondary);">
+            <i class="fa-solid fa-shield-halved" style="color:var(--color-primary)"></i>&nbsp; Anti-hallucination: every citation is validated against the retrieved paper map.
+          </div>
+        </div>
+        """, unsafe_allow_html=True)
 
-        ⚠️ **Anti-hallucination**: All citations are verified against the citation map.
-        """)
 
-
-# ─── Page: Settings ───────────────────────────────────────────
+# ─── Page: Settings ─────────────────────────────────
 def page_settings():
-    st.markdown('<p class="main-title">⚙️ Settings</p>', unsafe_allow_html=True)
+    st.markdown('<div class="page-hero">', unsafe_allow_html=True)
+    st.markdown('<h1 class="page-hero-title">Settings</h1>', unsafe_allow_html=True)
+    st.markdown('<p class="page-hero-sub">Configure API credentials and test pipeline components</p>', unsafe_allow_html=True)
+    st.markdown('</div>', unsafe_allow_html=True)
 
-    # ─── Tab: API Config ────────────────────────────────────
-    tab_api, tab_debug = st.tabs(["🔑 API Configuration", "🔬 Debug Console"])
+    tab_api, tab_debug = st.tabs(["  API Configuration  ", "  Debug Console  "])
 
     with tab_api:
-        st.markdown("### API Configuration")
+        st.markdown('<div class="settings-card">', unsafe_allow_html=True)
+        st.markdown("<h3>API Configuration</h3>", unsafe_allow_html=True)
 
-        # Check if API key is set via environment variable (cloud deployment)
         env_api_key = os.getenv("ANTHROPIC_API_KEY", "")
         env_base_url = os.getenv("ANTHROPIC_BASE_URL", "")
         env_model = os.getenv("ANTHROPIC_MODEL", "")
         env_ss_key = os.getenv("SEMANTICSCHOLAR_API_KEY", "")
+        is_cloud = bool(env_api_key)
 
-        is_cloud_deployed = bool(env_api_key)
-
-        if is_cloud_deployed:
-            st.success("🔒 API Key is configured via environment variables (cloud deployment)")
-            st.caption("To change the API key, update the environment variables in your cloud platform settings.")
+        if is_cloud:
+            st.success("API key is configured via environment variables (cloud deployment). Changes must be made through platform settings.")
         else:
-            st.caption("Changes are saved to `.env` and take effect immediately.")
-            st.caption("⚠️ Do not commit `.env` to version control.")
+            st.caption("Credentials are saved to `.env` and take effect immediately. Never commit `.env` to version control.")
 
         env = load_env()
 
         with st.form("env_form", border=True):
-            if is_cloud_deployed:
-                # Show masked values, fields disabled
-                st.text_input("ANTHROPIC_API_KEY", value="*" * 20, disabled=True, help="Set via environment variable")
-                st.text_input("ANTHROPIC_BASE_URL", value=env_base_url, disabled=True, help="Set via environment variable")
-                st.text_input("ANTHROPIC_MODEL", value=env_model, disabled=True, help="Set via environment variable")
-                st.text_input("SEMANTICSCHOLAR_API_KEY (optional)", value="*" * 20 if env_ss_key else "", disabled=True, help="Set via environment variable")
-                st.info("Environment variables are read-only. Contact administrator to change.")
+            if is_cloud:
+                st.text_input("ANTHROPIC_API_KEY", value="•" * 20, disabled=True, help="Set via environment variable")
+                st.text_input("ANTHROPIC_BASE_URL", value=env_base_url, disabled=True)
+                st.text_input("ANTHROPIC_MODEL", value=env_model, disabled=True)
+                st.text_input("SEMANTICSCHOLAR_API_KEY (optional)", value="•" * 20 if env_ss_key else "", disabled=True)
+                st.info("Environment variables are read-only. Contact your administrator to change them.")
             else:
-                api_key = st.text_input(
-                    "ANTHROPIC_API_KEY",
-                    value=env["api_key"],
-                    type="password",
-                    help="Your MiniMax API key",
-                )
-                base_url = st.text_input(
-                    "ANTHROPIC_BASE_URL",
-                    value=env["base_url"],
-                    help="Anthropic-compatible base URL",
-                )
-                model = st.text_input(
-                    "ANTHROPIC_MODEL",
-                    value=env["model"],
-                    help="Model name (default: MiniMax-M2.7-highspeed)",
-                )
-                ss_api_key = st.text_input(
-                    "SEMANTICSCHOLAR_API_KEY (optional)",
-                    value=env.get("ss_api_key", ""),
-                    type="password",
-                    help="Semantic Scholar API key — increases rate limit from IP-level to key-level. Get one free at https://www.semanticscholar.org/product/api",
-                )
-                submitted = st.form_submit_button("💾 Save to .env", type="primary")
+                api_key = st.text_input("ANTHROPIC_API_KEY", value=env["api_key"], type="password", help="MiniMax API key")
+                base_url = st.text_input("ANTHROPIC_BASE_URL", value=env["base_url"], help="Anthropic-compatible endpoint")
+                model = st.text_input("ANTHROPIC_MODEL", value=env["model"], help="Default: MiniMax-M2.7-highspeed")
+                ss_api_key = st.text_input("SEMANTICSCHOLAR_API_KEY (optional)", value=env.get("ss_api_key", ""), type="password", help="Semantic Scholar API key — increases rate limit. Free at semanticscholar.org")
+                st.form_submit_button("Save to .env", icon="fa-floppy-disk")
 
-                if submitted:
-                    if not api_key.strip():
-                        st.error("API key cannot be empty")
-                    else:
-                        ok, msg = save_env(api_key.strip(), base_url.strip(), model.strip(), ss_api_key)
-                        if ok:
-                            st.success(f"✅ {msg}")
-                            st.rerun()
-                        else:
-                            st.error(f"❌ Failed to save: {msg}")
+        # Current config display
+        st.markdown("#### Current Configuration")
+        c1, c2, c3, c4 = st.columns(4)
+        def metric_card(col, label, value, icon="fa-gear"):
+            with col:
+                st.markdown(f"""
+                <div class="settings-metric">
+                  <div style="font-size:0.7rem;font-weight:600;letter-spacing:0.08em;text-transform:uppercase;color:var(--color-text-muted);margin-bottom:0.4rem;"><i class="fa-solid {icon}"></i>&nbsp; {label}</div>
+                  <div style="font-family:var(--font-body);font-size:0.8rem;font-weight:500;color:var(--color-text-secondary);word-break:break-all;">{value}</div>
+                </div>
+                """, unsafe_allow_html=True)
 
-            # Current config display
-            st.markdown("#### Current Configuration")
-            col1, col2, col3, col4 = st.columns(4)
-            if is_cloud_deployed:
-                with col1:
-                    st.metric("API Key", env_api_key[:4] + "****" + env_api_key[-4:] if len(env_api_key) > 8 else "****")
-                with col2:
-                    st.metric("Base URL", env_base_url)
-                with col3:
-                    st.metric("Model", env_model)
-                with col4:
-                    ss_display = (env_ss_key[:4] + "****") if len(env_ss_key) > 4 else "not set"
-                    st.metric("SS Key", ss_display)
-            else:
-                with col1:
-                    api_key_disp = env.get("api_key", "")
-                    st.metric("API Key", (api_key_disp[:4] + "****" + api_key_disp[-4:]) if len(api_key_disp) > 8 else "****")
-                with col2:
-                    st.metric("Base URL", env.get("base_url", ""))
-                with col3:
-                    st.metric("Model", env.get("model", ""))
-                with col4:
-                    ss_disp = env.get("ss_api_key", "")
-                    ss_display = (ss_disp[:4] + "****") if len(ss_disp) > 4 else "not set"
-                    st.metric("SS Key", ss_display)
+        if is_cloud:
+            masked = (env_api_key[:4] + "****" + env_api_key[-4:]) if len(env_api_key) > 8 else "****"
+            metric_card(c1, "API Key", masked, "fa-key")
+            metric_card(c2, "Base URL", env_base_url, "fa-server")
+            metric_card(c3, "Model", env_model, "fa-microchip")
+            metric_card(c4, "SS Key", (env_ss_key[:4] + "****") if len(env_ss_key) > 4 else "not set", "fa-book")
+        else:
+            key_disp = env.get("api_key", "")
+            masked = (key_disp[:4] + "****" + key_disp[-4:]) if len(key_disp) > 8 else "****"
+            metric_card(c1, "API Key", masked, "fa-key")
+            metric_card(c2, "Base URL", env.get("base_url", ""), "fa-server")
+            metric_card(c3, "Model", env.get("model", ""), "fa-microchip")
+            ss_d = env.get("ss_api_key", "")
+            metric_card(c4, "SS Key", (ss_d[:4] + "****") if len(ss_d) > 4 else "not set", "fa-book")
+        st.markdown("</div>", unsafe_allow_html=True)
 
-    # ─── Tab: Debug Console ──────────────────────────────────
     with tab_debug:
-        st.markdown("### Debug Console")
-        st.caption("Test each pipeline component independently before running the full pipeline.")
+        st.markdown('<div class="settings-card">', unsafe_allow_html=True)
+        st.markdown("<h3>Debug Console</h3>")
+        st.caption("Test pipeline components independently before running the full pipeline.")
 
-        # ── 1. Search Test ─────────────────────────────────
-        with st.expander("🔍 Test 1: Semantic Scholar Search", expanded=True):
-            search_col1, search_col2 = st.columns([3, 1])
-            with search_col1:
-                search_query = st.text_input(
+        # Test 1: Search
+        with st.expander("Test 1 — Literature Search", expanded=True):
+            sc1, sc2 = st.columns([3, 1])
+            with sc1:
+                s_query = st.text_input(
                     "Search query",
                     value="LLM reasoning scientific discovery",
                     key="debug_search_query",
                     label_visibility="collapsed",
                 )
-            with search_col2:
-                search_btn = st.button("▶️ Run Search", key="btn_search")
+            with sc2:
+                s_btn = st.button("Run", key="btn_search", icon="fa-play")
 
-            # Show loading indicator before blocking call
-            if search_btn and search_query:
+            if s_btn and s_query:
                 st.session_state.debug_search_loading = True
                 st.session_state.debug_search_result = None
                 st.rerun()
 
-        # Loading / result state (rendered after rerun)
         if st.session_state.get("debug_search_loading"):
-            with st.spinner("🔍 Searching Semantic Scholar (timeout 15s)..."):
+            with st.spinner("Searching…"):
                 try:
                     from backend.services.search_service import SearchService
-                    ss = SearchService()
-                    papers = ss.search(search_query, top_k=3)
+                    papers = SearchService().search(s_query, top_k=5)
                     st.session_state.debug_search_result = papers
                 except Exception as e:
                     st.session_state.debug_search_result = {"error": str(e)}
@@ -567,51 +593,46 @@ def page_settings():
                     st.session_state.debug_search_loading = False
                     st.rerun()
 
-        result = st.session_state.get("debug_search_result")
-        if result:
-            if isinstance(result, dict) and "error" in result:
-                st.error(f"Search failed: {result['error']}")
-            elif isinstance(result, list):
-                st.success(f"✅ Search returned {len(result)} papers")
-                for p in result:
-                    st.markdown(f"**[{p.get('year','?')}]** {p.get('title', 'N/A')[:80]}")
-                    st.caption(f"   Authors: {', '.join(p.get('authors', [])[:3])}")
+        s_result = st.session_state.get("debug_search_result")
+        if s_result:
+            if isinstance(s_result, dict) and "error" in s_result:
+                st.error(f"Search failed: {s_result['error']}")
+            elif isinstance(s_result, list):
+                st.success(f"{len(s_result)} papers found")
+                for p in s_result:
+                    yr = p.get("year", "?")
+                    title = p.get("title", "N/A")[:90]
+                    aths = ", ".join(p.get("authors", [])[:3])
+                    st.markdown(f"&nbsp;&nbsp;**[{yr}]** {title}", unsafe_allow_html=True)
+                    st.caption(f"&nbsp;&nbsp;&nbsp;{aths}")
 
-        st.divider()
+        st.markdown("<hr style='margin:1.5rem 0'>", unsafe_allow_html=True)
 
-        # ── 2. LLM API Test ─────────────────────────────────
-        with st.expander("🤖 Test 2: LLM API (MiniMax M2.7)", expanded=True):
-            llm_col1, llm_col2 = st.columns([3, 1])
-            with llm_col1:
+        # Test 2: LLM
+        with st.expander("Test 2 — LLM API Call", expanded=True):
+            lc1, lc2 = st.columns([3, 1])
+            with lc1:
                 llm_prompt = st.text_area(
                     "Test prompt",
-                    value="Reply with exactly: 'API OK: [your model name]'",
+                    value="Reply with exactly: 'API OK — [model name]'",
                     height=80,
                     key="debug_llm_prompt",
                     label_visibility="collapsed",
                 )
-            with llm_col2:
-                llm_btn = st.button("▶️ Call API", key="btn_llm")
+            with lc2:
+                llm_btn = st.button("Call", key="btn_llm", icon="fa-paper-plane")
 
             if llm_btn and llm_prompt:
                 st.session_state.debug_api_loading = True
                 st.session_state.debug_api_result = None
                 st.rerun()
 
-        # Loading / result state
         if st.session_state.get("debug_api_loading"):
-            llm_prompt = st.session_state.get("debug_llm_prompt", "")
-            with st.spinner("🤖 Calling LLM API..."):
+            with st.spinner("Calling API…"):
                 try:
                     from backend.services.llm_service import LLMService
-                    llm = LLMService()
-                    response = llm.call(
-                        system_prompt="You are a helpful assistant.",
-                        user_prompt=llm_prompt,
-                        max_tokens=2048,
-                        temperature=0.1,
-                    )
-                    st.session_state.debug_api_result = {"success": True, "response": response}
+                    resp = LLMService().call("You are a helpful assistant.", llm_prompt, max_tokens=2048, temperature=0.1)
+                    st.session_state.debug_api_result = {"success": True, "response": resp}
                 except Exception as e:
                     st.session_state.debug_api_result = {"success": False, "error": str(e)}
                 finally:
@@ -621,121 +642,104 @@ def page_settings():
         api_result = st.session_state.get("debug_api_result")
         if api_result:
             if api_result.get("success"):
-                st.success("✅ API call succeeded")
-                st.markdown(f"**Response:**\n\n{api_result['response']}")
+                st.success("API call succeeded")
+                st.markdown(f"**Response:** {api_result['response']}")
             else:
-                st.error(f"❌ API call failed: {api_result.get('error', 'Unknown error')}")
+                st.error(f"API call failed: {api_result.get('error', 'Unknown error')}")
 
-        st.divider()
+        st.markdown("<hr style='margin:1.5rem 0'>", unsafe_allow_html=True)
 
-        # ── 3. Pipeline Dry Run ─────────────────────────────
-        with st.expander("⚡ Test 3: Mini Pipeline (Search + Write only)", expanded=True):
-            st.caption("Run a lightweight version of the pipeline (~30-40s). Shows results when done.")
-            dry_col1, dry_col2 = st.columns([3, 1])
-            with dry_col1:
-                dry_topic_input = st.text_input(
+        # Test 3: Dry run
+        with st.expander("Test 3 — Pipeline Dry Run (Search + Write)", expanded=True):
+            dc1, dc2 = st.columns([3, 1])
+            with dc1:
+                dry_topic = st.text_input(
                     "Test topic",
                     value="LLM reasoning in scientific discovery",
                     key="debug_dry_topic",
                     label_visibility="collapsed",
                 )
-            with dry_col2:
-                dry_btn = st.button(
-                    "▶️ Dry Run",
-                    key="btn_dry",
-                    disabled=st.session_state.get("dry_running", False),
-                )
+            with dc2:
+                dry_btn = st.button("Dry Run", key="btn_dry", icon="fa-bolt",
+                                     disabled=st.session_state.get("dry_running", False))
 
-            # Button clicked → set state and rerun
-            if dry_btn and dry_topic_input:
+            if dry_btn and dry_topic:
                 st.session_state.dry_running = True
-                st.session_state.dry_topic = dry_topic_input
+                st.session_state.dry_topic = dry_topic
                 st.session_state.dry_result = None
                 st.rerun()
 
-            # Show running indicator when pipeline is active
-            if st.session_state.get("dry_running") and not st.session_state.get("dry_result"):
-                st.info("🤖 Pipeline running (~30s) — please wait...")
+        if st.session_state.get("dry_running") and not st.session_state.get("dry_result"):
+            st.info("Pipeline running (~30s) — please wait…")
 
-            # Pipeline execution on rerun after button click
-            if (st.session_state.get("dry_running") and
-                    st.session_state.get("dry_result") is None and
-                    st.session_state.get("dry_topic")):
-                topic = st.session_state.get("dry_topic")
-                try:
-                    from backend.services.search_service import SearchService
-                    from backend.services.citation_service import CitationService
-                    from agents.writer import WriterAgent
-                    from backend.services.llm_service import LLMService
+        if (st.session_state.get("dry_running")
+                and st.session_state.get("dry_result") is None
+                and st.session_state.get("dry_topic")):
+            topic = st.session_state.get("dry_topic")
+            try:
+                from backend.services.search_service import SearchService
+                from backend.services.citation_service import CitationService
+                from agents.writer import WriterAgent
+                from backend.services.llm_service import LLMService
 
-                    llm = LLMService()
-                    ss = SearchService()
+                llm = LLMService()
+                papers = SearchService().search(topic, top_k=5)
 
-                    # Search
-                    papers = ss.search(topic, top_k=5)
-
-                    if not papers:
-                        st.session_state.dry_result = {"success": False, "error": "No papers found"}
-                    else:
-                        # Build citation map
-                        cs = CitationService(ss)
-                        for i, paper in enumerate(papers, 1):
-                            cs.citation_map[f"[{i}]"] = {
-                                "title": paper.get("title", "Unknown"),
-                                "paperId": paper.get("paperId", ""),
-                                "doi": paper.get("doi"),
-                                "year": paper.get("year"),
-                                "authors": paper.get("authors", []),
-                                "abstract": paper.get("abstract", ""),
-                                "url": paper.get("url", ""),
-                                "venue": paper.get("venue"),
-                                "citationCount": paper.get("citationCount", 0),
-                            }
-                        abstracts = cs.abstracts_context()
-
-                        # Write
-                        writer = WriterAgent(llm)
-                        write_result = writer.run(topic, cs.citation_map, abstracts)
-
-                        if write_result.success:
-                            st.session_state.dry_result = {
-                                "success": True,
-                                "data": write_result.content,
-                                "papers_count": len(papers),
-                            }
-                        else:
-                            st.session_state.dry_result = {"success": False, "error": write_result.error}
-                except Exception as e:
-                    st.session_state.dry_result = {"success": False, "error": str(e)}
-                finally:
-                    st.session_state.dry_running = False
-                    st.rerun()
-
-            # Display results
-            dry_result = st.session_state.get("dry_result")
-            if dry_result:
-                st.session_state.dry_running = False  # ensure button re-enabled
-                if dry_result.get("success"):
-                    data = dry_result["data"]
-                    count = dry_result.get("papers_count", "?")
-                    st.success(f"✅ Dry run succeeded — {count} papers processed")
-                    st.markdown("#### Outline")
-                    st.markdown(data.get("outline", ""))
-                    st.markdown("#### Introduction (preview)")
-                    st.markdown(data.get("introduction", "")[:1000])
+                if not papers:
+                    st.session_state.dry_result = {"success": False, "error": "No papers found"}
                 else:
-                    st.error(f"❌ Dry run failed: {dry_result.get('error', 'Unknown error')}")
+                    cs = CitationService(SearchService())
+                    for i, paper in enumerate(papers, 1):
+                        cs.citation_map[f"[{i}]"] = {
+                            "title": paper.get("title", "Unknown"),
+                            "paperId": paper.get("paperId", ""),
+                            "doi": paper.get("doi"),
+                            "year": paper.get("year"),
+                            "authors": paper.get("authors", []),
+                            "abstract": paper.get("abstract", ""),
+                            "url": paper.get("url", ""),
+                            "venue": paper.get("venue"),
+                            "citationCount": paper.get("citationCount", 0),
+                        }
+                    abstracts = cs.abstracts_context()
+                    writer = WriterAgent(llm)
+                    write_result = writer.run(topic, cs.citation_map, abstracts)
+                    if write_result.success:
+                        st.session_state.dry_result = {
+                            "success": True,
+                            "data": write_result.content,
+                            "papers_count": len(papers),
+                        }
+                    else:
+                        st.session_state.dry_result = {"success": False, "error": write_result.error}
+            except Exception as e:
+                st.session_state.dry_result = {"success": False, "error": str(e)}
+            finally:
+                st.session_state.dry_running = False
+                st.rerun()
+
+        dry_result = st.session_state.get("dry_result")
+        if dry_result:
+            st.session_state.dry_running = False
+            if dry_result.get("success"):
+                data = dry_result["data"]
+                count = dry_result.get("papers_count", "?")
+                st.success(f"Dry run succeeded — {count} papers processed")
+                st.markdown("#### Outline")
+                st.markdown(data.get("outline", ""))
+                st.markdown("#### Introduction (preview)")
+                st.markdown(data.get("introduction", "")[:800] + "…" if data.get("introduction") else "")
+            else:
+                st.error(f"Dry run failed: {dry_result.get('error', 'Unknown error')}")
+
+        st.markdown("</div>", unsafe_allow_html=True)
 
 
-# ─── Main ────────────────────────────────────────────────────
+# ─── Main ──────────────────────────────────────────
 def main():
-    st.markdown('<p class="main-title">📄 PubMed Paper Assistant</p>', unsafe_allow_html=True)
-    st.markdown('<p class="sub-title">Generate publication-ready research papers with verified citations</p>', unsafe_allow_html=True)
-
-    # Top nav
     pg = st.navigation([
-        st.Page(page_main, title="📝 Generate Paper", icon="📝"),
-        st.Page(page_settings, title="⚙️ Settings & Debug", icon="⚙️"),
+        st.Page(page_main, title="Generate", icon=""),
+        st.Page(page_settings, title="Settings", icon=""),
     ])
     pg.run()
 
