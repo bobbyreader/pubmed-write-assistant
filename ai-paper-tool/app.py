@@ -248,7 +248,7 @@ def page_main():
         st.markdown('</div>', unsafe_allow_html=True)
 
         st.markdown('<hr>', unsafe_allow_html=True)
-        if st.button("Reset Session", icon="fa-arrows-rotate"):
+        if st.button("Reset Session"):
             for key in list(st.session_state.keys()):
                 del st.session_state[key]
             st.rerun()
@@ -442,7 +442,6 @@ def page_main():
                             data=md_content,
                             file_name=f"paper_{ts}.md",
                             mime="text/markdown",
-                            icon="fa-file-lines",
                         )
                     with d2:
                         st.download_button(
@@ -450,7 +449,6 @@ def page_main():
                             data=export_word(md_content, st.session_state.topic),
                             file_name=f"paper_{ts}.docx",
                             mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-                            icon="fa-file-word",
                         )
                     with d3:
                         st.download_button(
@@ -458,7 +456,6 @@ def page_main():
                             data=export_pdf(md_content, st.session_state.topic),
                             file_name=f"paper_{ts}.pdf",
                             mime="application/pdf",
-                            icon="fa-file-pdf",
                         )
                 else:
                     st.warning("No draft generated")
@@ -527,7 +524,7 @@ def page_settings():
                 base_url = st.text_input("ANTHROPIC_BASE_URL", value=env["base_url"], help="Anthropic-compatible endpoint")
                 model = st.text_input("ANTHROPIC_MODEL", value=env["model"], help="Default: MiniMax-M2.7-highspeed")
                 ss_api_key = st.text_input("SEMANTICSCHOLAR_API_KEY (optional)", value=env.get("ss_api_key", ""), type="password", help="Semantic Scholar API key — increases rate limit. Free at semanticscholar.org")
-                st.form_submit_button("Save to .env", icon="fa-floppy-disk")
+                st.form_submit_button("Save to .env")
 
         # Current config display
         st.markdown("#### Current Configuration")
@@ -573,7 +570,7 @@ def page_settings():
                     label_visibility="collapsed",
                 )
             with sc2:
-                s_btn = st.button("Run", key="btn_search", icon="fa-play")
+                s_btn = st.button("Run", key="btn_search")
 
             if s_btn and s_query:
                 st.session_state.debug_search_loading = True
@@ -619,7 +616,7 @@ def page_settings():
                     label_visibility="collapsed",
                 )
             with lc2:
-                llm_btn = st.button("Call", key="btn_llm", icon="fa-paper-plane")
+                llm_btn = st.button("Call", key="btn_llm")
 
             if llm_btn and llm_prompt:
                 st.session_state.debug_api_loading = True
@@ -659,7 +656,7 @@ def page_settings():
                     label_visibility="collapsed",
                 )
             with dc2:
-                dry_btn = st.button("Dry Run", key="btn_dry", icon="fa-bolt",
+                dry_btn = st.button("Dry Run", key="btn_dry",
                                      disabled=st.session_state.get("dry_running", False))
 
             if dry_btn and dry_topic:
@@ -737,8 +734,8 @@ def page_settings():
 # ─── Main ──────────────────────────────────────────
 def main():
     pg = st.navigation([
-        st.Page(page_main, title="Generate", icon=""),
-        st.Page(page_settings, title="Settings", icon=""),
+        st.Page(page_main, title="Generate"),
+        st.Page(page_settings, title="Settings"),
     ])
     pg.run()
 
