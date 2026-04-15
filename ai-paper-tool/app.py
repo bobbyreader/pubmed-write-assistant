@@ -295,7 +295,6 @@ def page_main():
         generate_btn = st.button(
             "",
             disabled=disabled,
-            label_visibility="hidden",
         )
 
     if generate_btn and topic.strip():
