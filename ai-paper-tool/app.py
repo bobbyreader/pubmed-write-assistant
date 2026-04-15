@@ -227,9 +227,16 @@ def page_main():
         st.markdown('<div class="apple-divider-label">Retrieved Papers</div>', unsafe_allow_html=True)
         citation_map = st.session_state.citation_map
         if citation_map:
+            col_a, col_b = st.columns(2)
+            with col_a:
+                st.metric("Papers", len(citation_map))
+            with col_b:
+                st.metric("Citations", len(citation_map))
+            st.markdown('<div style="height:8px"></div>', unsafe_allow_html=True)
             for cite_id, meta in sorted(citation_map.items()):
                 render_paper_card(cite_id, meta)
         else:
+            st.metric("Papers", 0)
             st.markdown("""
             <div class="apple-empty-state">
               <i class="material-icons" style="font-size:1.5rem;color:var(--apple-black-48);">folder_open</i>
@@ -258,7 +265,7 @@ def page_main():
 
     st.markdown("")
 
-    # ─── Search Section ───────────────────────────
+    # ─── Search & Filter Section ───────────────────
     st.markdown('<div class="apple-search-wrapper">', unsafe_allow_html=True)
     topic = st.text_input(
         "",
@@ -268,41 +275,26 @@ def page_main():
     )
     st.markdown('</div>', unsafe_allow_html=True)
 
-    # ─── Filters ───────────────────────────────────
-    st.markdown('<div class="apple-filters-row">', unsafe_allow_html=True)
-    col1, col2, col3, col4 = st.columns([1, 1, 1, 1])
+    # Filters row
+    col1, col2 = st.columns(2)
     with col1:
-        search_top_k = st.slider("Papers", min_value=5, max_value=50, value=20, step=5)
+        search_top_k = st.slider("Papers to retrieve", min_value=5, max_value=50, value=20, step=5)
     with col2:
-        year_from = st.number_input("From", min_value=1990, max_value=2026, value=2018)
+        year_from = st.number_input("Year from", min_value=1990, max_value=2026, value=2018)
+
+    col3, col4, col5 = st.columns(3)
     with col3:
-        year_to = st.number_input("To", min_value=1990, max_value=2026, value=2026)
+        year_to = st.number_input("Year to", min_value=1990, max_value=2026, value=2026)
     with col4:
         author = st.text_input("Author", placeholder="Any author", label_visibility="collapsed")
-    st.markdown('</div>', unsafe_allow_html=True)
-
-    col_f5, _ = st.columns([1, 3])
-    with col_f5:
+    with col5:
         venue = st.text_input("Journal / Venue", placeholder="Any journal", label_visibility="collapsed")
 
     st.markdown("")
 
-    # ─── Generate Button (Apple Blue CTA) ───────────
-    col_gen, _, _ = st.columns([1, 1, 1])
-    with col_gen:
-        disabled = st.session_state.generating or not topic.strip()
-        st.markdown(f"""
-        <button class="apple-btn-primary"{" disabled" if disabled else ""}>
-          <i class="material-icons" style="font-size:1.1rem;vertical-align:middle;">auto_awesome</i>
-          &nbsp;Generate Paper
-        </button>
-        """, unsafe_allow_html=True)
-        generate_btn = st.button(
-            "",
-            disabled=disabled,
-        )
-
-    if generate_btn and topic.strip():
+    # ─── Generate Button ───────────────────────────
+    disabled = st.session_state.generating or not topic.strip()
+    if st.button("✦  Generate Paper", type="primary", disabled=disabled, use_container_width=True):
         st.session_state.generating = True
         st.session_state.generating_done = False
         st.session_state.started = True
@@ -361,6 +353,32 @@ def page_main():
         t.start()
         st.rerun()
 
+    # ─── Progress Display ───────────────────────────
+    # Always show when generating (even mid-poll)
+    if st.session_state.generating:
+        phase = st.session_state.pipeline_progress_phase
+        msg = st.session_state.pipeline_progress_msg
+        frac = st.session_state.pipeline_progress_fraction
+        phase_icons = {
+            "init": "settings",
+            "research": "manage_search",
+            "write": "edit_note",
+            "review": "visibility",
+            "edit": "draw",
+            "finalize": "save",
+        }
+        icon = phase_icons.get(phase, "spinner")
+        spin_animate = "animation:spin 1.5s linear infinite;" if phase in ("init", "research", "write") else ""
+        st.markdown(f"""
+        <div class="apple-progress-wrapper">
+          <div class="apple-progress-text">
+            <i class="material-icons" style="font-size:1rem;vertical-align:middle;margin-right:6px;{spin_animate}">{icon}</i>
+            {msg}
+          </div>
+        </div>
+        """, unsafe_allow_html=True)
+        st.progress(frac if frac > 0 else None)
+
     # ─── Poll progress ─────────────────────────────
     if st.session_state.generating and not st.session_state.generating_done:
         q = st.session_state.progress_queue
@@ -392,30 +410,6 @@ def page_main():
                     break
         time.sleep(1)
         st.rerun()
-
-    if st.session_state.generating:
-        phase = st.session_state.pipeline_progress_phase
-        msg = st.session_state.pipeline_progress_msg
-        frac = st.session_state.pipeline_progress_fraction
-        phase_icons = {
-            "init": "settings",
-            "research": "manage_search",
-            "write": "edit_note",
-            "review": "visibility",
-            "edit": "draw",
-            "finalize": "save",
-        }
-        icon = phase_icons.get(phase, "spinner")
-        spin_animate = "animation:spin 1.5s linear infinite;" if phase in ("init", "research", "write") else ""
-        st.markdown(f"""
-        <div class="apple-progress-wrapper">
-          <div class="apple-progress-text">
-            <i class="material-icons" style="font-size:1rem;vertical-align:middle;margin-right:6px;{spin_animate}">{icon}</i>
-            {msg}
-          </div>
-        </div>
-        """, unsafe_allow_html=True)
-        st.progress(frac if frac > 0 else None)
 
     if st.session_state.error:
         st.error(st.session_state.error)
