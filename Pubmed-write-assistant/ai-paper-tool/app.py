@@ -34,9 +34,9 @@ st.markdown("""
 <link href="https://fonts.googleapis.com/css2?family=Material+Icons" rel="stylesheet">
 """, unsafe_allow_html=True)
 
-# Custom CSS
-with open(os.path.join(os.path.dirname(__file__), ".streamlit", "style.css")) as f:
-    st.markdown(f"<style>{f.read()}</style>", unsafe_allow_html=True)
+# Custom CSS — served from static/ to bypass Render build cache
+with open(os.path.join(os.path.dirname(__file__), "static", "css", "apple.css")) as f:
+    st.html(f'<style>{f.read()}</style>')
 
 
 # ─── Session State ─────────────────────────────────
