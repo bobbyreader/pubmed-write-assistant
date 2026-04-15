@@ -153,4 +153,11 @@ streamlit run app.py --server.headless true --server.port 8501
   - 中文字体 (STHeiti)
   - 表格渲染
   - RGBColor 混用问题
-- [ ] 部署到云端
+- [x] ~~P0 测试用例~~ ✅ (2026-04-15)
+  - 81 tests, 6 modules: search/llm/agents/export/services/pipeline
+  - All 81 passing, committed to main
+- [ ] ~~部署到云端~~ ✅ (2026-04-13)
+  - https://pubmed-write-assistant.onrender.com
+- [ ] 运营基建（token统计、错误率监控）
+- [ ] 体验增强（草稿暂存、多语言 i18n）
+- [ ] Reviewer R3 JSON 截断优化（max_tokens 调参）
