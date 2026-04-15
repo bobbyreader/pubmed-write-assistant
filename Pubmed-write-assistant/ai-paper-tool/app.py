@@ -25,12 +25,12 @@ st.set_page_config(
 )
 
 # ─── External Resources ──────────────────────────────
-# Font Awesome 6 + Google Fonts via HTML injection
+# Google Sans + Material Icons via HTML injection
 st.markdown("""
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" integrity="sha512-DTOQO9RWCH3ppGqcWaEA1BIZOC6xxalwEsw9c2QQeAIftl+Vegovlnee1c9QX4TctnWMn13TZye+giMm8e2LwA==" crossorigin="anonymous" referrerpolicy="no-referrer" />
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;0,700;1,400&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;1,9..40,400&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Google+Sans:wght@400;500;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Icons" rel="stylesheet">
 """, unsafe_allow_html=True)
 
 # Custom CSS
@@ -124,7 +124,7 @@ def render_paper_card(cite_id: str, meta: dict):
       <div class="paper-card-title">{cite_id} {title[:70]}{'…' if len(title) > 70 else ''}</div>
       <div class="paper-card-meta">{authors_str} &middot; {year}{' &middot; ' + venue if venue else ''}</div>
       {f'<div class="paper-card-abstract">{abstract_short}</div>' if abstract_short else ''}
-      {f'<a class="paper-card-link" href="{url}" target="_blank"><i class="fa-solid fa-arrow-up-right-from-square"></i> {label}</a>' if url else ''}
+      {f'<a class="paper-card-link" href="{url}" target="_blank"><i class="material-icons" style="font-size:0.9rem;vertical-align:middle;margin-right:3px;">open_in_new</i>{label}</a>' if url else ''}
     </div>
     """, unsafe_allow_html=True)
 
@@ -138,23 +138,23 @@ def render_round_card(record):
         "edit": "Editorial Revision",
     }
     phase_icons = {
-        "search": "fa-magnifying-glass",
-        "write": "fa-pen-nib",
-        "review": "fa-eye",
-        "edit": "fa-pen",
+        "search": "manage_search",
+        "write": "edit",
+        "review": "visibility",
+        "edit": "draw",
     }
-    icon = phase_icons.get(record.phase, "fa-circle")
+    icon = phase_icons.get(record.phase, "circle")
     label = phase_labels.get(record.phase, record.phase.capitalize())
 
     st.markdown(f"""
     <div class="round-card">
       <div class="round-phase-label">
-        <i class="fa-solid {icon}"></i>&nbsp; Round {record.round_num} &mdash; {label}
+        <i class="material-icons" style="font-size:0.85rem;vertical-align:middle;margin-right:4px;">{icon}</i> Round {record.round_num} &mdash; {label}
       </div>
     """, unsafe_allow_html=True)
 
     if record.phase == "search":
-        st.markdown(f'<div class="progress-text"><i class="fa-solid fa-check" style="color:var(--color-success)"></i>&nbsp; {record.notes}</div>')
+        st.markdown(f'<div class="progress-text"><i class="material-icons" style="font-size:0.9rem;vertical-align:middle;margin-right:4px;color:var(--color-success)">check_circle</i> {record.notes}</div>')
 
     elif record.phase == "write":
         if record.draft_content:
@@ -229,7 +229,7 @@ def page_main():
             for cite_id, meta in sorted(citation_map.items()):
                 render_paper_card(cite_id, meta)
         else:
-            st.markdown('<div class="empty-state"><i class="fa-regular fa-folder-open" style="font-size:1.5rem;margin-bottom:0.5rem;display:block;color:var(--color-text-muted)"></i>Search to retrieve papers</div>', unsafe_allow_html=True)
+            st.markdown('<div class="empty-state"><i class="material-icons" style="font-size:1.5rem;margin-bottom:0.5rem;display:block;color:var(--color-text-muted)">folder_open</i>Search to retrieve papers</div>', unsafe_allow_html=True)
         st.markdown('</div>', unsafe_allow_html=True)
 
         st.markdown('<hr>', unsafe_allow_html=True)
@@ -240,7 +240,7 @@ def page_main():
         st.markdown(f'<div class="paper-card-meta" style="word-break:break-all">Endpoint: {env["base_url"]}</div>', unsafe_allow_html=True)
         is_cloud = bool(os.getenv("ANTHROPIC_API_KEY", ""))
         if is_cloud:
-            st.markdown('<div class="paper-card-meta" style="color:var(--color-success)"><i class="fa-solid fa-lock"></i>&nbsp; API key via environment</div>', unsafe_allow_html=True)
+            st.markdown('<div class="paper-card-meta" style="color:var(--color-success)"><i class="material-icons" style="font-size:0.8rem;vertical-align:middle;margin-right:4px;">lock</i>API key via environment</div>', unsafe_allow_html=True)
         else:
             key = env["api_key"]
             masked = (key[:4] + "****" + key[-4:]) if len(key) > 8 else "****"
@@ -288,7 +288,7 @@ def page_main():
         disabled = st.session_state.generating or not topic.strip()
         st.markdown(f"""
         <button class="btn-generate"{" disabled" if disabled else ""}>
-          <i class="fa-solid fa-wand-magic-sparkles"></i>
+          <i class="material-icons" style="font-size:1rem;vertical-align:middle;margin-right:6px;">auto_awesome</i>
           &nbsp;Generate Paper
         </button>
         """, unsafe_allow_html=True)
@@ -394,18 +394,18 @@ def page_main():
         msg = st.session_state.pipeline_progress_msg
         frac = st.session_state.pipeline_progress_fraction
         phase_icons = {
-            "init": "fa-gears",
-            "research": "fa-magnifying-glass",
-            "write": "fa-pen-nib",
-            "review": "fa-eye",
-            "edit": "fa-pen",
-            "finalize": "fa-floppy-disk",
+            "init": "settings",
+            "research": "manage_search",
+            "write": "edit",
+            "review": "visibility",
+            "edit": "draw",
+            "finalize": "save",
         }
-        icon = phase_icons.get(phase, "fa-spinner")
-        spin = " fa-spin" if phase in ("init", "research", "write") else ""
+        icon = phase_icons.get(phase, "spinner")
+        spin_animate = "animation:spin 1.5s linear infinite;" if phase in ("init", "research", "write") else ""
         st.markdown(f"""
         <div class="progress-wrapper">
-          <div class="progress-text"><i class="fa-solid {icon}{spin}"></i>&nbsp; {msg}</div>
+          <div class="progress-text"><i class="material-icons" style="font-size:0.9rem;vertical-align:middle;margin-right:4px;{spin_animate}">{icon}</i> {msg}</div>
         </div>
         """, unsafe_allow_html=True)
         st.progress(frac if frac > 0 else None)
@@ -480,7 +480,7 @@ def page_main():
             <li><strong>Download</strong> as Markdown, Word, or PDF — all citations are verified against source papers</li>
           </ol>
           <div style="margin-top:1rem;padding:0.75rem 1rem;background:rgba(124,111,91,0.05);border-left:3px solid var(--color-primary-light);border-radius:6px;font-size:0.85rem;color:var(--color-text-secondary);">
-            <i class="fa-solid fa-shield-halved" style="color:var(--color-primary)"></i>&nbsp; Anti-hallucination: every citation is validated against the retrieved paper map.
+            <i class="material-icons" style="font-size:0.9rem;vertical-align:middle;margin-right:4px;color:var(--color-accent)">shield</i>&nbsp; Anti-hallucination: every citation is validated against the retrieved paper map.
           </div>
         </div>
         """, unsafe_allow_html=True)
@@ -529,29 +529,29 @@ def page_settings():
         # Current config display
         st.markdown("#### Current Configuration")
         c1, c2, c3, c4 = st.columns(4)
-        def metric_card(col, label, value, icon="fa-gear"):
+        def metric_card(col, label, value, icon="settings"):
             with col:
                 st.markdown(f"""
                 <div class="settings-metric">
-                  <div style="font-size:0.7rem;font-weight:600;letter-spacing:0.08em;text-transform:uppercase;color:var(--color-text-muted);margin-bottom:0.4rem;"><i class="fa-solid {icon}"></i>&nbsp; {label}</div>
-                  <div style="font-family:var(--font-body);font-size:0.8rem;font-weight:500;color:var(--color-text-secondary);word-break:break-all;">{value}</div>
+                  <div style="font-size:0.68rem;font-weight:500;letter-spacing:0.06em;text-transform:uppercase;color:var(--color-text-muted);margin-bottom:0.4rem;"><i class="material-icons" style="font-size:0.8rem;vertical-align:middle;margin-right:3px;">{icon}</i>{label}</div>
+                  <div style="font-family:var(--font-body);font-size:0.8rem;font-weight:400;color:var(--color-text-secondary);word-break:break-all;">{value}</div>
                 </div>
                 """, unsafe_allow_html=True)
 
         if is_cloud:
             masked = (env_api_key[:4] + "****" + env_api_key[-4:]) if len(env_api_key) > 8 else "****"
-            metric_card(c1, "API Key", masked, "fa-key")
-            metric_card(c2, "Base URL", env_base_url, "fa-server")
-            metric_card(c3, "Model", env_model, "fa-microchip")
-            metric_card(c4, "SS Key", (env_ss_key[:4] + "****") if len(env_ss_key) > 4 else "not set", "fa-book")
+            metric_card(c1, "API Key", masked, "vpn_key")
+            metric_card(c2, "Base URL", env_base_url, "cloud")
+            metric_card(c3, "Model", env_model, "memory")
+            metric_card(c4, "SS Key", (env_ss_key[:4] + "****") if len(env_ss_key) > 4 else "not set", "menu_book")
         else:
             key_disp = env.get("api_key", "")
             masked = (key_disp[:4] + "****" + key_disp[-4:]) if len(key_disp) > 8 else "****"
-            metric_card(c1, "API Key", masked, "fa-key")
-            metric_card(c2, "Base URL", env.get("base_url", ""), "fa-server")
-            metric_card(c3, "Model", env.get("model", ""), "fa-microchip")
+            metric_card(c1, "API Key", masked, "vpn_key")
+            metric_card(c2, "Base URL", env.get("base_url", ""), "cloud")
+            metric_card(c3, "Model", env.get("model", ""), "memory")
             ss_d = env.get("ss_api_key", "")
-            metric_card(c4, "SS Key", (ss_d[:4] + "****") if len(ss_d) > 4 else "not set", "fa-book")
+            metric_card(c4, "SS Key", (ss_d[:4] + "****") if len(ss_d) > 4 else "not set", "menu_book")
         st.markdown("</div>", unsafe_allow_html=True)
 
     with tab_debug:
