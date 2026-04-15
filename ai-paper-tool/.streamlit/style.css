@@ -1,107 +1,757 @@
-/* ─── 整体 ─────────────────────────────── */
-.stApp {
-    background: #F7F9FC;
+/* ─── Design Tokens ─────────────────────────── */
+:root {
+    --color-bg: #FAFAF8;
+    --color-surface: #FFFFFF;
+    --color-surface-raised: rgba(255, 255, 255, 0.72);
+    --color-border: rgba(0, 0, 0, 0.07);
+    --color-border-hover: rgba(0, 0, 0, 0.14);
+
+    --color-primary: #7C6F5B;        /* warm taupe — sophistication */
+    --color-primary-light: #A89888;
+    --color-primary-dark: #5C5043;
+    --color-accent: #C4956A;        /* terracotta gold */
+    --color-accent-light: #D4AA85;
+
+    --color-text-primary: #2C2824;
+    --color-text-secondary: #6B635A;
+    --color-text-muted: #9E958D;
+
+    --color-success: #7A9E7E;        /* sage green */
+    --color-warning: #C4956A;
+    --color-error: #B87070;
+
+    --color-glass-bg: rgba(255, 255, 255, 0.62);
+    --color-glass-border: rgba(255, 255, 255, 0.48);
+
+    --shadow-sm: 0 1px 3px rgba(44, 40, 36, 0.06), 0 1px 2px rgba(44, 40, 36, 0.04);
+    --shadow-md: 0 4px 16px rgba(44, 40, 36, 0.08), 0 2px 6px rgba(44, 40, 36, 0.05);
+    --shadow-lg: 0 12px 40px rgba(44, 40, 36, 0.10), 0 4px 12px rgba(44, 40, 36, 0.06);
+
+    --radius-sm: 8px;
+    --radius-md: 14px;
+    --radius-lg: 20px;
+    --radius-xl: 28px;
+    --radius-full: 9999px;
+
+    --font-display: 'Cormorant Garamond', Georgia, serif;
+    --font-body: 'DM Sans', -apple-system, sans-serif;
+    --font-mono: 'JetBrains Mono', monospace;
+
+    --transition-fast: 150ms cubic-bezier(0.4, 0, 0.2, 1);
+    --transition-base: 240ms cubic-bezier(0.4, 0, 0.2, 1);
+    --transition-slow: 380ms cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-/* ─── Sidebar ──────────────────────────── */
+/* ─── Global Reset ─────────────────────────── */
+.stApp {
+    background: var(--color-bg) !important;
+    font-family: var(--font-body) !important;
+    color: var(--color-text-primary);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+}
+
+.stApp > header {
+    background: transparent !important;
+}
+
+.stApp > header[data-testid="stHeader"] {
+    background: transparent !important;
+    height: 0 !important;
+}
+
+.stApp [data-testid="stMainBlockContainer"] {
+    padding-top: 2rem !important;
+    max-width: 960px !important;
+}
+
+/* ─── Scrollbar ─────────────────────────────── */
+::-webkit-scrollbar { width: 5px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb {
+    background: rgba(124, 111, 91, 0.22);
+    border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+    background: rgba(124, 111, 91, 0.40);
+}
+
+/* ─── Typography ───────────────────────────── */
+h1, h2, h3, h4 {
+    font-family: var(--font-display) !important;
+    font-weight: 600;
+    letter-spacing: -0.02em;
+    color: var(--color-text-primary);
+    line-height: 1.25;
+}
+
+p, li, span {
+    font-family: var(--font-body);
+    line-height: 1.7;
+    letter-spacing: 0.01em;
+}
+
+/* ─── Navigation ───────────────────────────── */
+[data-testid="stNavigation"] {
+    background: var(--color-glass-bg) !important;
+    backdrop-filter: blur(20px) saturate(180%) !important;
+    -webkit-backdrop-filter: blur(20px) saturate(180%) !important;
+    border-bottom: 1px solid var(--color-border) !important;
+    padding: 0 1.5rem !important;
+}
+
+[data-testid="stNavSection"] a {
+    font-family: var(--font-body) !important;
+    font-size: 0.82rem !important;
+    font-weight: 500 !important;
+    letter-spacing: 0.06em !important;
+    text-transform: uppercase !important;
+    color: var(--color-text-secondary) !important;
+    transition: color var(--transition-fast) !important;
+    border-bottom: 2px solid transparent !important;
+    padding-bottom: 2px !important;
+}
+
+[data-testid="stNavSection"] a:hover,
+[data-testid="stNavSection"] a[aria-selected="true"] {
+    color: var(--color-primary) !important;
+    border-bottom-color: var(--color-primary) !important;
+}
+
+/* ─── Sidebar ──────────────────────────────── */
 [data-testid="stSidebar"] {
-    background: #FFFFFF;
-    border-right: 1px solid #E8EDF2;
+    background: var(--color-surface) !important;
+    border-right: 1px solid var(--color-border) !important;
+    backdrop-filter: none !important;
 }
 
 [data-testid="stSidebarContent"] {
-    padding-top: 1.5rem;
+    padding: 2rem 1.25rem !important;
 }
 
-/* ─── Hero / Title ────────────────────── */
-.main-title {
-    font-size: 2.2rem;
-    font-weight: 700;
-    color: #1A2332;
-    margin-bottom: 0.3rem;
-    letter-spacing: -0.02em;
+/* Sidebar sections */
+.sidebar-section {
+    margin-bottom: 1.75rem;
 }
 
-.sub-title {
-    font-size: 1rem;
-    color: #5A6978;
-    margin-bottom: 1.8rem;
-    font-weight: 400;
+.sidebar-section-title {
+    font-size: 0.7rem !important;
+    font-weight: 600 !important;
+    letter-spacing: 0.10em !important;
+    text-transform: uppercase !important;
+    color: var(--color-text-muted) !important;
+    margin-bottom: 0.75rem !important;
+    padding-left: 0.25rem;
 }
 
-/* ─── Search Input (hero style) ──────── */
-[data-testid="stTextInput"] > div > div > input[type="text"]:first-child {
-    font-size: 1.1rem !important;
-    padding: 12px 16px !important;
-    border-radius: 24px !important;
-    border: 1px solid #DADCE0 !important;
-    box-shadow: 0 1px 4px rgba(32,33,36,0.08) !important;
-    max-width: 680px !important;
+/* ─── Title Area ───────────────────────────── */
+.page-hero {
+    margin-bottom: 2.5rem;
 }
 
-[data-testid="stTextInput"] > div > div > input[type="text"]:first-child:focus {
-    border-color: #2E7D9B !important;
-    box-shadow: 0 1px 6px rgba(46,125,155,0.2) !important;
+.page-hero-title {
+    font-family: var(--font-display) !important;
+    font-size: 2.6rem !important;
+    font-weight: 600 !important;
+    color: var(--color-text-primary) !important;
+    letter-spacing: -0.03em !important;
+    line-height: 1.15 !important;
+    margin-bottom: 0.5rem !important;
+}
+
+.page-hero-sub {
+    font-size: 1.0rem !important;
+    color: var(--color-text-secondary) !important;
+    font-weight: 400 !important;
+    letter-spacing: 0.02em !important;
+    line-height: 1.6 !important;
+}
+
+/* ─── Hero Search ─────────────────────────── */
+.hero-search-wrapper {
+    background: var(--color-surface);
+    border-radius: var(--radius-xl);
+    box-shadow: var(--shadow-md);
+    padding: 1.5rem 1.75rem;
+    margin-bottom: 1.5rem;
+    border: 1px solid var(--color-border);
+    transition: box-shadow var(--transition-base);
+}
+
+.hero-search-wrapper:focus-within {
+    box-shadow: var(--shadow-lg), 0 0 0 2px rgba(124, 111, 91, 0.12);
+}
+
+.hero-search-input {
+    font-size: 1.05rem !important;
+    font-family: var(--font-body) !important;
+    border: none !important;
+    outline: none !important;
+    box-shadow: none !important;
+    background: transparent !important;
+    padding: 0.5rem 0 !important;
+    color: var(--color-text-primary) !important;
+    letter-spacing: 0.01em !important;
+}
+
+.hero-search-input::placeholder {
+    color: var(--color-text-muted) !important;
+    font-weight: 400 !important;
+}
+
+/* ─── Filter Chips ─────────────────────────── */
+.filters-row {
+    display: flex;
+    gap: 0.625rem;
+    flex-wrap: wrap;
+    margin-bottom: 1.25rem;
+    align-items: center;
+}
+
+.filter-chip {
+    background: var(--color-surface) !important;
+    border: 1px solid var(--color-border) !important;
+    border-radius: var(--radius-full) !important;
+    padding: 0.35rem 0.9rem !important;
+    font-size: 0.8rem !important;
+    font-family: var(--font-body) !important;
+    color: var(--color-text-secondary) !important;
+    transition: all var(--transition-fast) !important;
+    box-shadow: var(--shadow-sm) !important;
+}
+
+.filter-chip:hover {
+    border-color: var(--color-primary-light) !important;
+    color: var(--color-primary) !important;
+    box-shadow: var(--shadow-md) !important;
+    transform: translateY(-1px);
+}
+
+/* Number inputs in filter area */
+[data-testid="stNumberInput"] > div > div > input {
+    border-radius: var(--radius-full) !important;
+    border: 1px solid var(--color-border) !important;
+    font-size: 0.82rem !important;
+    padding: 0.35rem 0.75rem !important;
+    height: auto !important;
+    background: var(--color-surface) !important;
+    color: var(--color-text-secondary) !important;
+    transition: border-color var(--transition-fast), box-shadow var(--transition-fast) !important;
+}
+
+[data-testid="stNumberInput"] > div > div > input:focus {
+    border-color: var(--color-primary) !important;
+    box-shadow: 0 0 0 2px rgba(124, 111, 91, 0.1) !important;
     outline: none !important;
 }
 
-/* ─── Filter labels ──────────────────── */
-[data-testid="stSlider"] > label,
-[data-testid="stNumberInput"] > label,
-[data-testid="stTextInput"] > label {
-    font-size: 0.75rem !important;
-    color: #5A6978 !important;
+[data-testid="stNumberInput"] > div > label {
+    font-size: 0.72rem !important;
+    color: var(--color-text-muted) !important;
+    letter-spacing: 0.04em !important;
+    margin-bottom: 3px !important;
+}
+
+/* Text inputs in filter area */
+[data-testid="stTextInput"]:not(.hero-search) > div > div > input {
+    border-radius: var(--radius-full) !important;
+    border: 1px solid var(--color-border) !important;
+    font-size: 0.82rem !important;
+    padding: 0.35rem 0.85rem !important;
+    height: auto !important;
+    background: var(--color-surface) !important;
+    color: var(--color-text-secondary) !important;
+    transition: border-color var(--transition-fast), box-shadow var(--transition-fast) !important;
+}
+
+[data-testid="stTextInput"]:not(.hero-search) > div > div > input:focus {
+    border-color: var(--color-primary) !important;
+    box-shadow: 0 0 0 2px rgba(124, 111, 91, 0.1) !important;
+    outline: none !important;
+}
+
+/* Slider */
+[data-testid="stSlider"] > div > div > div > div {
+    background: var(--color-border-hover) !important;
+}
+
+[data-testid="stSlider"] > div > div > div > div > div {
+    background: var(--color-primary) !important;
+}
+
+[data-testid="stSlider"] > div > label {
+    font-size: 0.72rem !important;
+    color: var(--color-text-muted) !important;
+    letter-spacing: 0.04em !important;
+}
+
+/* ─── Generate Button ─────────────────────── */
+.btn-generate {
+    display: inline-flex !important;
+    align-items: center !important;
+    gap: 0.5rem !important;
+    background: var(--color-primary) !important;
+    color: #FFFFFF !important;
+    border: none !important;
+    border-radius: var(--radius-full) !important;
+    padding: 0.75rem 2rem !important;
+    font-family: var(--font-body) !important;
+    font-size: 0.9rem !important;
     font-weight: 500 !important;
-    margin-bottom: 2px !important;
+    letter-spacing: 0.04em !important;
+    box-shadow: var(--shadow-md) !important;
+    transition: all var(--transition-base) !important;
+    cursor: pointer !important;
 }
 
-/* ─── Buttons ─────────────────────────── */
-.st-emotion-cache-ghzmj1 {
-    border-radius: 8px;
+.btn-generate:hover {
+    background: var(--color-primary-dark) !important;
+    box-shadow: var(--shadow-lg) !important;
+    transform: translateY(-2px);
 }
 
-/* ─── Cards ───────────────────────────── */
-[data-testid="stHorizontalBlock"] > div > div,
-.stCard {
-    border: 1px solid #E8EDF2;
-    border-radius: 12px;
-    background: #FFFFFF;
-    box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+.btn-generate:active {
+    transform: translateY(0px);
+    box-shadow: var(--shadow-sm) !important;
 }
 
-/* ─── Buttons ─────────────────────────── */
-.st-emotion-cache-ghzmj1 {
-    border-radius: 8px;
+.btn-generate:disabled {
+    background: var(--color-text-muted) !important;
+    cursor: not-allowed !important;
+    transform: none !important;
+    box-shadow: none !important;
 }
 
-/* ─── 进度条 ───────────────────────────── */
+/* ─── Progress ─────────────────────────────── */
+.progress-wrapper {
+    background: var(--color-surface);
+    border-radius: var(--radius-lg);
+    padding: 1.25rem 1.5rem;
+    margin: 1rem 0;
+    border: 1px solid var(--color-border);
+    box-shadow: var(--shadow-sm);
+}
+
+.progress-text {
+    font-size: 0.88rem !important;
+    color: var(--color-text-secondary) !important;
+    font-weight: 500 !important;
+    margin-bottom: 0.6rem !important;
+}
+
 [data-testid="stProgressBar"] > div > div > div {
-    background: linear-gradient(90deg, #2E7D9B, #4FB3BF);
-    border-radius: 4px;
+    background: linear-gradient(90deg, var(--color-primary), var(--color-accent)) !important;
+    border-radius: var(--radius-full) !important;
+    height: 6px !important;
 }
 
-/* ─── Expander ─────────────────────────── */
-.streamlit-expander {
-    border: 1px solid #E8EDF2;
-    border-radius: 8px;
+/* ─── Tabs ─────────────────────────────────── */
+[data-testid="stTabBar"] {
+    background: transparent !important;
+    gap: 0 !important;
 }
 
-/* ─── Markdown text ───────────────────── */
-p, li {
-    line-height: 1.7;
+[data-testid="stTab"] {
+    font-family: var(--font-body) !important;
+    font-size: 0.82rem !important;
+    font-weight: 500 !important;
+    letter-spacing: 0.04em !important;
+    color: var(--color-text-muted) !important;
+    border-bottom: 2px solid transparent !important;
+    background: transparent !important;
+    padding: 0.6rem 1rem !important;
+    border-radius: var(--radius-sm) var(--radius-sm) 0 0 !important;
+    transition: all var(--transition-fast) !important;
 }
 
-/* ─── Metric ──────────────────────────── */
+[data-testid="stTab"]:hover {
+    color: var(--color-text-secondary) !important;
+    background: rgba(124, 111, 91, 0.04) !important;
+}
+
+[data-testid="stTab"][aria-selected="true"] {
+    color: var(--color-primary) !important;
+    border-bottom-color: var(--color-primary) !important;
+    background: transparent !important;
+}
+
+/* ─── Cards ───────────────────────────────── */
+[data-testid="stHorizontalBlock"] > div > div {
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-md);
+    background: var(--color-surface);
+    box-shadow: var(--shadow-sm);
+    transition: box-shadow var(--transition-base), border-color var(--transition-base);
+    padding: 1.25rem !important;
+}
+
+[data-testid="stHorizontalBlock"] > div > div:hover {
+    box-shadow: var(--shadow-md);
+    border-color: var(--color-border-hover);
+}
+
+/* ─── Metric ───────────────────────────────── */
 [data-testid="stMetricValue"] {
-    font-weight: 600;
-    color: #2E7D9B;
+    font-family: var(--font-display) !important;
+    font-size: 1.8rem !important;
+    font-weight: 600 !important;
+    color: var(--color-primary) !important;
+    letter-spacing: -0.02em !important;
+    line-height: 1 !important;
 }
 
-/* ─── Scrollbar ───────────────────────── */
-::-webkit-scrollbar {
-    width: 6px;
+[data-testid="stMetricLabel"] {
+    font-size: 0.72rem !important;
+    font-weight: 500 !important;
+    letter-spacing: 0.06em !important;
+    text-transform: uppercase !important;
+    color: var(--color-text-muted) !important;
 }
-::-webkit-scrollbar-thumb {
-    background: #CBD5E0;
-    border-radius: 3px;
+
+/* ─── Expander ─────────────────────────────── */
+.streamlit-expander {
+    border: 1px solid var(--color-border) !important;
+    border-radius: var(--radius-md) !important;
+    background: var(--color-surface) !important;
+    box-shadow: var(--shadow-sm) !important;
+    transition: box-shadow var(--transition-base), border-color var(--transition-base) !important;
+    overflow: hidden;
+}
+
+.streamlit-expander:hover {
+    box-shadow: var(--shadow-md) !important;
+    border-color: var(--color-border-hover) !important;
+}
+
+[data-testid="stExpanderToggleIcon"] {
+    color: var(--color-text-muted) !important;
+}
+
+/* ─── Alerts / Info Boxes ─────────────────── */
+.stSuccess, div[data-testid="stSuccess"],
+[data-baseweb="notification"] [data-testid="stAlert"][data-testid="stSuccess"] {
+    background: rgba(122, 158, 126, 0.08) !important;
+    border-left: 3px solid var(--color-success) !important;
+    border-radius: var(--radius-sm) !important;
+    color: var(--color-success) !important;
+    font-size: 0.88rem !important;
+}
+
+.stError, div[data-testid="stError"] {
+    background: rgba(184, 112, 112, 0.08) !important;
+    border-left: 3px solid var(--color-error) !important;
+    border-radius: var(--radius-sm) !important;
+    color: var(--color-error) !important;
+    font-size: 0.88rem !important;
+}
+
+.stWarning, div[data-testid="stWarning"] {
+    background: rgba(196, 149, 106, 0.08) !important;
+    border-left: 3px solid var(--color-warning) !important;
+    border-radius: var(--radius-sm) !important;
+    color: #8B6845 !important;
+    font-size: 0.88rem !important;
+}
+
+.stInfo, div[data-testid="stInfo"] {
+    background: rgba(124, 111, 91, 0.06) !important;
+    border-left: 3px solid var(--color-primary-light) !important;
+    border-radius: var(--radius-sm) !important;
+    color: var(--color-text-secondary) !important;
+    font-size: 0.88rem !important;
+}
+
+/* ─── Markdown Content ─────────────────────── */
+.stMarkdown h1 {
+    font-family: var(--font-display) !important;
+    font-size: 2rem !important;
+    font-weight: 600 !important;
+    letter-spacing: -0.02em !important;
+    color: var(--color-text-primary) !important;
+    margin-top: 1.5rem !important;
+}
+
+.stMarkdown h2 {
+    font-family: var(--font-display) !important;
+    font-size: 1.5rem !important;
+    font-weight: 600 !important;
+    letter-spacing: -0.01em !important;
+    color: var(--color-text-primary) !important;
+    margin-top: 1.5rem !important;
+    padding-bottom: 0.4rem !important;
+    border-bottom: 1px solid var(--color-border) !important;
+}
+
+.stMarkdown h3 {
+    font-family: var(--font-display) !important;
+    font-size: 1.15rem !important;
+    font-weight: 600 !important;
+    color: var(--color-text-primary) !important;
+    margin-top: 1rem !important;
+}
+
+.stMarkdown p {
+    line-height: 1.75 !important;
+    color: var(--color-text-secondary) !important;
+}
+
+.stMarkdown code {
+    font-family: var(--font-mono) !important;
+    font-size: 0.85em !important;
+    background: rgba(124, 111, 91, 0.07) !important;
+    padding: 0.15em 0.4em !important;
+    border-radius: 4px !important;
+    color: var(--color-primary-dark) !important;
+}
+
+/* Paper content in tabs */
+.paper-content h1,
+.paper-content h2,
+.paper-content h3 {
+    font-family: var(--font-display) !important;
+}
+
+.paper-content h2 {
+    border-bottom: 1px solid var(--color-border) !important;
+    padding-bottom: 0.3rem !important;
+    margin-top: 2rem !important;
+}
+
+.paper-content p {
+    line-height: 1.8 !important;
+    color: var(--color-text-secondary) !important;
+}
+
+/* ─── Download Buttons ──────────────────────── */
+.stDownloadButton > button {
+    background: var(--color-surface) !important;
+    border: 1px solid var(--color-border) !important;
+    border-radius: var(--radius-full) !important;
+    color: var(--color-text-secondary) !important;
+    font-family: var(--font-body) !important;
+    font-size: 0.82rem !important;
+    font-weight: 500 !important;
+    padding: 0.45rem 1.1rem !important;
+    box-shadow: var(--shadow-sm) !important;
+    transition: all var(--transition-fast) !important;
+    letter-spacing: 0.03em !important;
+}
+
+.stDownloadButton > button:hover {
+    border-color: var(--color-primary-light) !important;
+    color: var(--color-primary) !important;
+    box-shadow: var(--shadow-md) !important;
+    transform: translateY(-1px);
+}
+
+/* ─── Divider ──────────────────────────────── */
+hr {
+    border: none !important;
+    border-top: 1px solid var(--color-border) !important;
+    margin: 1.5rem 0 !important;
+}
+
+/* ─── Container Border ─────────────────────── */
+[data-testid="stHorizontalBlock"]:has( > div > div) {
+    gap: 0.75rem;
+}
+
+/* ─── Button Reset ─────────────────────────── */
+.stButton > button {
+    font-family: var(--font-body) !important;
+    border-radius: var(--radius-full) !important;
+    transition: all var(--transition-fast) !important;
+}
+
+.stButton > button:hover {
+    transform: translateY(-1px);
+}
+
+/* ─── How It Works Section ─────────────────── */
+.how-it-works {
+    background: var(--color-surface);
+    border-radius: var(--radius-lg);
+    padding: 2rem 2.25rem;
+    border: 1px solid var(--color-border);
+    box-shadow: var(--shadow-sm);
+    margin-top: 2rem;
+}
+
+.how-it-works h3 {
+    font-family: var(--font-display) !important;
+    font-size: 1.4rem !important;
+    font-weight: 600 !important;
+    color: var(--color-text-primary) !important;
+    margin-bottom: 1.25rem !important;
+    letter-spacing: -0.01em !important;
+}
+
+.how-it-works ol {
+    padding-left: 1.25rem !important;
+}
+
+.how-it-works li {
+    font-size: 0.92rem !important;
+    color: var(--color-text-secondary) !important;
+    line-height: 1.7 !important;
+    margin-bottom: 0.4rem !important;
+}
+
+.how-it-works li strong {
+    color: var(--color-text-primary) !important;
+    font-weight: 500 !important;
+}
+
+/* ─── Settings Page ─────────────────────────── */
+.settings-card {
+    background: var(--color-surface);
+    border-radius: var(--radius-lg);
+    padding: 1.75rem 2rem;
+    border: 1px solid var(--color-border);
+    box-shadow: var(--shadow-sm);
+    margin-bottom: 1.5rem;
+}
+
+.settings-card h3 {
+    font-family: var(--font-display) !important;
+    font-size: 1.3rem !important;
+    font-weight: 600 !important;
+    letter-spacing: -0.01em !important;
+    margin-bottom: 1.25rem !important;
+    color: var(--color-text-primary) !important;
+}
+
+.settings-form-card {
+    background: rgba(250, 250, 248, 0.6);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-md);
+    padding: 1.5rem;
+    backdrop-filter: blur(10px);
+}
+
+.settings-metric {
+    background: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-md);
+    padding: 1rem 1.25rem;
+    box-shadow: var(--shadow-sm);
+    transition: box-shadow var(--transition-fast), border-color var(--transition-fast) !important;
+}
+
+.settings-metric:hover {
+    border-color: var(--color-border-hover) !important;
+    box-shadow: var(--shadow-md) !important;
+}
+
+/* ─── Sidebar Paper Cards ──────────────────── */
+.paper-card {
+    background: rgba(250, 250, 248, 0.5);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-md);
+    padding: 0.875rem 1rem;
+    margin-bottom: 0.5rem;
+    transition: all var(--transition-fast) !important;
+    backdrop-filter: blur(8px);
+}
+
+.paper-card:hover {
+    background: var(--color-surface);
+    border-color: var(--color-border-hover);
+    box-shadow: var(--shadow-sm);
+}
+
+.paper-card-title {
+    font-size: 0.8rem !important;
+    font-weight: 500 !important;
+    color: var(--color-text-primary) !important;
+    line-height: 1.4 !important;
+    margin-bottom: 0.25rem !important;
+}
+
+.paper-card-meta {
+    font-size: 0.72rem !important;
+    color: var(--color-text-muted) !important;
+    line-height: 1.5 !important;
+}
+
+.paper-card-abstract {
+    font-size: 0.78rem !important;
+    color: var(--color-text-secondary) !important;
+    line-height: 1.6 !important;
+    margin-top: 0.4rem !important;
+}
+
+.paper-card-link {
+    font-size: 0.72rem !important;
+    color: var(--color-primary) !important;
+    font-weight: 500 !important;
+    text-decoration: none !important;
+    margin-top: 0.35rem !important;
+    display: inline-block !important;
+    transition: color var(--transition-fast) !important;
+}
+
+.paper-card-link:hover {
+    color: var(--color-accent) !important;
+}
+
+/* ─── Round Records ────────────────────────── */
+.round-card {
+    background: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-md);
+    padding: 1.25rem 1.5rem;
+    margin-bottom: 0.875rem;
+    box-shadow: var(--shadow-sm);
+    transition: box-shadow var(--transition-base), border-color var(--transition-base) !important;
+}
+
+.round-card:hover {
+    box-shadow: var(--shadow-md);
+    border-color: var(--color-border-hover);
+}
+
+.round-phase-label {
+    font-size: 0.75rem !important;
+    font-weight: 600 !important;
+    letter-spacing: 0.08em !important;
+    text-transform: uppercase !important;
+    color: var(--color-text-muted) !important;
+    margin-bottom: 0.75rem !important;
+}
+
+/* ─── References ────────────────────────────── */
+.refs-content {
+    font-size: 0.88rem !important;
+    color: var(--color-text-secondary) !important;
+    line-height: 1.8 !important;
+}
+
+/* ─── Spinner ──────────────────────────────── */
+[data-testid="stSpinner"] {
+    color: var(--color-primary) !important;
+}
+
+/* ─── Notification / Toast ─────────────────── */
+[data-testid="stToast"] {
+    background: var(--color-surface) !important;
+    border: 1px solid var(--color-border) !important;
+    border-radius: var(--radius-md) !important;
+    box-shadow: var(--shadow-lg) !important;
+    backdrop-filter: blur(16px) saturate(180%) !important;
+    -webkit-backdrop-filter: blur(16px) saturate(180%) !important;
+}
+
+/* ─── Caption ──────────────────────────────── */
+.stCaption {
+    color: var(--color-text-muted) !important;
+    font-size: 0.75rem !important;
+}
+
+/* ─── Footer / empty states ────────────────── */
+.empty-state {
+    text-align: center;
+    padding: 2rem 1rem;
+    color: var(--color-text-muted);
+    font-size: 0.85rem;
 }
