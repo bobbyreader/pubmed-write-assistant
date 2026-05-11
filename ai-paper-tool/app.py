@@ -179,7 +179,8 @@ def render_round_card(record):
             st.progress(score / 10, text=f"Quality score: {score}/10")
 
             if rc.get("hallucination_flags"):
-                st.error(f"**Hallucination detected:** {', '.join(rc['hallucination_flags'])}")
+                flags_str = ', '.join(str(f) for f in rc['hallucination_flags'])
+                st.error(f"**Hallucination detected:** {flags_str}")
 
             if rc.get("strengths"):
                 with st.expander("Strengths"):
