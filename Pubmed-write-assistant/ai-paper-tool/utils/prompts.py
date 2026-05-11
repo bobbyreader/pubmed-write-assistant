@@ -199,8 +199,7 @@ When reporting statistics, use this format:
 - DO NOT fabricate statistical values — only report those supported by citation_map abstracts
 
 ## LANGUAGE
-Write in the SAME language as the topic. If Chinese, write entirely in Chinese with Chinese subheadings.
-If English, write entirely in English with English subheadings.
+请使用简体中文（Simplified Chinese）撰写整篇论文，包括所有章节标题、子标题和正文内容。
 """
 
 
@@ -216,12 +215,12 @@ WRITER_USER_PROMPT = """## Topic
 ---
 
 Please generate the complete medical journal paper following these sections IN ORDER:
-1. Abstract (with structured subheadings: BACKGROUND/OBJECTIVE/METHODS/RESULTS/CONCLUSION)
-2. Introduction
-3. Methods
-4. Results
-5. Discussion
-6. Conclusion
+1. Abstract (with structured subheadings: 背景/目的/方法/结果/结论)
+2. Introduction（引言）
+3. Methods（方法）
+4. Results（结果）
+5. Discussion（讨论）
+6. Conclusion（结论）
 
 IMPORTANT: Do NOT include a "Related Work" section. Integrate all literature discussion
 into the Introduction and Discussion sections.
