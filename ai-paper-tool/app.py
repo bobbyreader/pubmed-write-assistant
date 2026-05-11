@@ -392,7 +392,7 @@ def page_main():
           </div>
         </div>
         """, unsafe_allow_html=True)
-        st.progress(max(0.0, min(1.0, frac)) if frac > 0 else None)
+        st.progress(max(0.0, min(1.0, frac or 0)))
 
     # ─── Poll progress ─────────────────────────────
     if st.session_state.generating and not st.session_state.generating_done:
