@@ -161,3 +161,48 @@ streamlit run app.py --server.headless true --server.port 8501
 - [ ] 运营基建（token统计、错误率监控）
 - [ ] 体验增强（草稿暂存、多语言 i18n）
 - [ ] Reviewer R3 JSON 截断优化（max_tokens 调参）
+
+---
+
+## 更新 (2026-05-10)
+
+### 新增功能
+
+#### 1. 运营监控系统 (MetricsService)
+- **位置**: `backend/services/metrics_service.py`
+- **功能**:
+  - 追踪每个 LLM 调用的 token 使用量
+  - 记录 API 调用耗时
+  - 统计各 Agent 的调用次数
+  - 记录错误信息
+  - 输出到 `metrics/api_calls.jsonl`
+- **UI 集成**: app.py 新增 "API Usage" 标签页显示统计
+
+#### 2. 草稿暂存 (CheckpointService)
+- **位置**: `backend/services/checkpoint_service.py`
+- **功能**:
+  - 每轮 Reviewer/Editor 后自动保存检查点
+  - 保存位置: `checkpoints/checkpoint_{topic}_{timestamp}.json`
+  - 中断后可恢复进度
+- **增强 Pipeline**: `workflows/writing_pipeline_with_checkpoint.py`
+
+#### 3. 项目文档 (CLAUDE.md)
+- **位置**: 项目根目录
+- **内容**:
+  - 项目概述和技术栈
+  - 项目结构说明
+  - 关键配置参数
+  - 开发约定（Agent 命名、JSON 输出、SSL 证书等）
+  - 常见问题解答
+
+### Agent 更新
+- 所有 Agent (Writer/Reviewer/Editor/Researcher) 新增 `agent_name` 配置
+- 用于 metrics 追踪区分不同 Agent 的 token 消耗
+
+### UI 更新
+- 新增 "API Usage" 标签页显示:
+  - 总调用次数
+  - 成功率
+  - Token 消耗
+  - 各 Agent 统计
+  - 错误信息

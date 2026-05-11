@@ -22,7 +22,10 @@ class ResearcherAgent(BaseAgent):
 
     def __init__(self, llm_service: LLMService):
         super().__init__(
-            config=AgentConfig(system_prompt=RESEARCHER_SYSTEM_PROMPT),
+            config=AgentConfig(
+                system_prompt=RESEARCHER_SYSTEM_PROMPT,
+                agent_name="researcher",
+            ),
             llm_service=llm_service,
         )
         self._search_service = SearchService()

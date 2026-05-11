@@ -23,6 +23,7 @@ class ReviewerAgent(BaseAgent):
                 system_prompt=REVIEWER_SYSTEM_PROMPT,
                 max_tokens=12288,
                 temperature=0.3,
+                agent_name="reviewer",
             ),
             llm_service=llm_service,
         )

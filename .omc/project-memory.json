@@ -1,0 +1,299 @@
+{
+  "version": "1.0.0",
+  "lastScanned": 1778502541303,
+  "projectRoot": "/Users/liuwei/Projects",
+  "techStack": {
+    "languages": [],
+    "frameworks": [],
+    "packageManager": null,
+    "runtime": null
+  },
+  "build": {
+    "buildCommand": null,
+    "testCommand": null,
+    "lintCommand": null,
+    "devCommand": null,
+    "scripts": {}
+  },
+  "conventions": {
+    "namingStyle": null,
+    "importStyle": null,
+    "testPattern": null,
+    "fileOrganization": null
+  },
+  "structure": {
+    "isMonorepo": false,
+    "workspaces": [],
+    "mainDirectories": [
+      "scripts"
+    ],
+    "gitBranches": {
+      "defaultBranch": "main",
+      "branchingStrategy": null
+    }
+  },
+  "customNotes": [],
+  "directoryMap": {
+    "BTCDCA": {
+      "path": "BTCDCA",
+      "purpose": null,
+      "fileCount": 0,
+      "lastAccessed": 1778502541284,
+      "keyFiles": []
+    },
+    "JoplinBackup": {
+      "path": "JoplinBackup",
+      "purpose": null,
+      "fileCount": 2,
+      "lastAccessed": 1778502541284,
+      "keyFiles": [
+        "README.md"
+      ]
+    },
+    "Pubmed-write-assistant": {
+      "path": "Pubmed-write-assistant",
+      "purpose": null,
+      "fileCount": 4,
+      "lastAccessed": 1778502541284,
+      "keyFiles": [
+        "AI科研论文生成系统（优化落地版）V2.0.md",
+        "CLAUDE.md",
+        "DESIGN.md"
+      ]
+    },
+    "YG- RAG": {
+      "path": "YG- RAG",
+      "purpose": null,
+      "fileCount": 0,
+      "lastAccessed": 1778502541285,
+      "keyFiles": []
+    },
+    "YG智能知识库问答系统": {
+      "path": "YG智能知识库问答系统",
+      "purpose": null,
+      "fileCount": 6,
+      "lastAccessed": 1778502541286,
+      "keyFiles": [
+        "PROGRESS.md",
+        "README.md",
+        "render.yaml",
+        "runtime.txt"
+      ]
+    },
+    "ai-paper-tool": {
+      "path": "ai-paper-tool",
+      "purpose": null,
+      "fileCount": 1,
+      "lastAccessed": 1778502541286,
+      "keyFiles": [
+        "PROGRESS.md"
+      ]
+    },
+    "etf-analysis": {
+      "path": "etf-analysis",
+      "purpose": null,
+      "fileCount": 1,
+      "lastAccessed": 1778502541287,
+      "keyFiles": []
+    },
+    "init": {
+      "path": "init",
+      "purpose": null,
+      "fileCount": 1,
+      "lastAccessed": 1778502541288,
+      "keyFiles": []
+    },
+    "marble-game": {
+      "path": "marble-game",
+      "purpose": null,
+      "fileCount": 1,
+      "lastAccessed": 1778502541288,
+      "keyFiles": [
+        "index.html"
+      ]
+    },
+    "nice-portfolio": {
+      "path": "nice-portfolio",
+      "purpose": null,
+      "fileCount": 2,
+      "lastAccessed": 1778502541289,
+      "keyFiles": [
+        "index.html"
+      ]
+    },
+    "one-balance": {
+      "path": "one-balance",
+      "purpose": null,
+      "fileCount": 14,
+      "lastAccessed": 1778502541290,
+      "keyFiles": [
+        "LICENSE",
+        "README-en.md",
+        "README.md",
+        "drizzle.config.ts",
+        "package.json"
+      ]
+    },
+    "pubmed-assistant": {
+      "path": "pubmed-assistant",
+      "purpose": null,
+      "fileCount": 9,
+      "lastAccessed": 1778502541291,
+      "keyFiles": [
+        "README.md",
+        "index.html",
+        "package-lock.json",
+        "package.json",
+        "tsconfig.json"
+      ]
+    },
+    "scripts": {
+      "path": "scripts",
+      "purpose": "Build/utility scripts",
+      "fileCount": 2,
+      "lastAccessed": 1778502541291,
+      "keyFiles": [
+        "转歌词"
+      ]
+    },
+    "superpowers": {
+      "path": "superpowers",
+      "purpose": null,
+      "fileCount": 11,
+      "lastAccessed": 1778502541292,
+      "keyFiles": [
+        "CHANGELOG.md",
+        "CODE_OF_CONDUCT.md",
+        "GEMINI.md",
+        "LICENSE",
+        "README.md"
+      ]
+    },
+    "voice-input": {
+      "path": "voice-input",
+      "purpose": null,
+      "fileCount": 8,
+      "lastAccessed": 1778502541292,
+      "keyFiles": [
+        "README.md",
+        "config.yaml",
+        "main.py",
+        "main_menu.py",
+        "main_simple.py"
+      ]
+    },
+    "xhs-dashboard": {
+      "path": "xhs-dashboard",
+      "purpose": null,
+      "fileCount": 6,
+      "lastAccessed": 1778502541292,
+      "keyFiles": [
+        "README.md",
+        "index.html"
+      ]
+    },
+    "xiaohongshu-cli": {
+      "path": "xiaohongshu-cli",
+      "purpose": null,
+      "fileCount": 7,
+      "lastAccessed": 1778502541292,
+      "keyFiles": [
+        "README.md",
+        "SCHEMA.md",
+        "SKILL.md",
+        "pyproject.toml",
+        "uv.lock"
+      ]
+    },
+    "xiaohongshu-mcp-python": {
+      "path": "xiaohongshu-mcp-python",
+      "purpose": null,
+      "fileCount": 3,
+      "lastAccessed": 1778502541293,
+      "keyFiles": [
+        "README.md"
+      ]
+    },
+    "YG智能知识库问答系统/docs": {
+      "path": "YG智能知识库问答系统/docs",
+      "purpose": "Documentation",
+      "fileCount": 0,
+      "lastAccessed": 1778502541294,
+      "keyFiles": []
+    },
+    "ai-paper-tool/tests": {
+      "path": "ai-paper-tool/tests",
+      "purpose": "Test files",
+      "fileCount": 8,
+      "lastAccessed": 1778502541294,
+      "keyFiles": [
+        "__init__.py",
+        "conftest.py",
+        "test_agents.py"
+      ]
+    },
+    "marble-game/docs": {
+      "path": "marble-game/docs",
+      "purpose": "Documentation",
+      "fileCount": 0,
+      "lastAccessed": 1778502541294,
+      "keyFiles": []
+    },
+    "pubmed-assistant/dist": {
+      "path": "pubmed-assistant/dist",
+      "purpose": "Distribution/build output",
+      "fileCount": 1,
+      "lastAccessed": 1778502541297,
+      "keyFiles": [
+        "index.html"
+      ]
+    },
+    "pubmed-assistant/node_modules": {
+      "path": "pubmed-assistant/node_modules",
+      "purpose": "Dependencies",
+      "fileCount": 2,
+      "lastAccessed": 1778502541299,
+      "keyFiles": []
+    },
+    "voice-input/docs": {
+      "path": "voice-input/docs",
+      "purpose": "Documentation",
+      "fileCount": 2,
+      "lastAccessed": 1778502541300,
+      "keyFiles": [
+        "DEVELOPMENT.md"
+      ]
+    },
+    "xhs-dashboard/data": {
+      "path": "xhs-dashboard/data",
+      "purpose": "Data files",
+      "fileCount": 4,
+      "lastAccessed": 1778502541300,
+      "keyFiles": [
+        "generated.json",
+        "published.json",
+        "topics.json"
+      ]
+    },
+    "xiaohongshu-cli/tests": {
+      "path": "xiaohongshu-cli/tests",
+      "purpose": "Test files",
+      "fileCount": 13,
+      "lastAccessed": 1778502541301,
+      "keyFiles": [
+        "__init__.py",
+        "conftest.py",
+        "test_anti_detection.py"
+      ]
+    },
+    "xiaohongshu-mcp-python/docs": {
+      "path": "xiaohongshu-mcp-python/docs",
+      "purpose": "Documentation",
+      "fileCount": 1,
+      "lastAccessed": 1778502541302,
+      "keyFiles": []
+    }
+  },
+  "hotPaths": [],
+  "userDirectives": []
+}

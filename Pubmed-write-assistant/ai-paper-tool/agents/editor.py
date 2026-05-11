@@ -23,6 +23,7 @@ class EditorAgent(BaseAgent):
                 system_prompt=EDITOR_SYSTEM_PROMPT,
                 max_tokens=12288,
                 temperature=0.4,
+                agent_name="editor",
             ),
             llm_service=llm_service,
         )

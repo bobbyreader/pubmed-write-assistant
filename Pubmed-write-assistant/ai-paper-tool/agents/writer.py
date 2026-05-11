@@ -22,6 +22,7 @@ class WriterAgent(BaseAgent):
                 system_prompt=WRITER_SYSTEM_PROMPT,
                 max_tokens=16384,
                 temperature=0.6,
+                agent_name="writer",
             ),
             llm_service=llm_service,
         )
