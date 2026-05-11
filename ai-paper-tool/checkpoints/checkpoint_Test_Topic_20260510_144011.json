@@ -1,0 +1,15 @@
+{
+  "topic": "Test Topic",
+  "timestamp": "2026-05-10T14:40:11.967114",
+  "current_phase": "write",
+  "current_round": 1,
+  "citation_map": {
+    "[1]": {
+      "title": "Test Paper",
+      "year": 2024
+    }
+  },
+  "current_draft": "# Test Draft\n\nSome content here.",
+  "rounds": [],
+  "references": "[1] Test Paper. 2024."
+}

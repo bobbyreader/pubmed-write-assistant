@@ -21,6 +21,7 @@ class AgentConfig:
     model: Optional[str] = None
     max_tokens: int = 4096
     temperature: float = 0.7
+    agent_name: str = "unknown"  # For metrics tracking
 
 
 @dataclass
@@ -74,6 +75,7 @@ class BaseAgent(ABC):
                 model=self.config.model,
                 max_tokens=self.config.max_tokens,
                 temperature=self.config.temperature,
+                agent=self.config.agent_name,
             )
             parsed = self.parse_response(raw)
             if parsed is None:

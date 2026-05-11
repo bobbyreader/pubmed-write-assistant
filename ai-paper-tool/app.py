@@ -14,7 +14,9 @@ from typing import Optional
 import streamlit as st
 
 from workflows.writing_pipeline import WritingPipeline
+from workflows.writing_pipeline_with_checkpoint import WritingPipelineWithCheckpoint
 from utils.export_service import export_word, export_pdf
+from backend.services.metrics_service import MetricsService
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -54,6 +56,7 @@ def _init_state():
         "pipeline_progress_msg": "",
         "pipeline_progress_fraction": 0.0,
         "progress_queue": None,
+        "enable_checkpoint": True,
         "debug_api_result": None,
         "debug_search_result": None,
         "debug_api_loading": False,
@@ -293,6 +296,17 @@ def page_main():
 
     st.markdown("")
 
+    # Advanced settings
+    with st.expander("Advanced Settings"):
+        st.checkbox(
+            "Enable checkpoint saving (resume on interruption)",
+            value=True,
+            key="enable_checkpoint",
+            help="Saves progress after each round. If interrupted, you can resume from where you left off."
+        )
+
+    st.markdown("")
+
     # ─── Generate Button ───────────────────────────
     disabled = st.session_state.generating or not topic.strip()
     if st.button("✦  Generate Paper", type="primary", disabled=disabled, use_container_width=True):
@@ -321,7 +335,7 @@ def page_main():
             ven: Optional[str],
         ):
             try:
-                pl = WritingPipeline()
+                pl = WritingPipelineWithCheckpoint(enable_checkpoint=st.session_state.get('enable_checkpoint', True))
                 pl.set_progress_callback(
                     lambda phase, msg, frac: q_out.put(("progress", phase, msg, frac))
                 )
@@ -421,12 +435,15 @@ def page_main():
 
         if result.success:
             early = "terminated early (high quality)" if result.early_exit else f"completed in {len(result.rounds)} rounds"
+            if result.resumed_from_checkpoint:
+                st.info("Resumed from previous checkpoint")
             st.success(f"Done — {early}")
 
-            tab1, tab2, tab3 = st.tabs([
+            tab1, tab2, tab3, tab4 = st.tabs([
                 "  Draft  ",
                 "  References  ",
                 "  Iteration History  ",
+                "  API Usage  ",
             ])
 
             with tab1:
@@ -469,6 +486,36 @@ def page_main():
                 st.markdown("## Iteration Rounds")
                 for record in st.session_state.rounds:
                     render_round_card(record)
+
+            with tab4:
+                st.markdown("## API Usage Metrics")
+                metrics = MetricsService()
+                summary = metrics.get_session_summary()
+                
+                # Summary cards
+                c1, c2, c3, c4 = st.columns(4)
+                c1.metric("Total Calls", summary.total_calls)
+                c2.metric("Success Rate", f"{summary.successful_calls/max(summary.total_calls,1)*100:.1f}%")
+                c3.metric("Total Tokens", f"{summary.total_tokens:,}")
+                c4.metric("Duration", f"{summary.total_duration_ms/1000:.1f}s")
+                
+                # Token breakdown
+                st.markdown("### Token Breakdown")
+                tc1, tc2 = st.columns(2)
+                tc1.metric("Input Tokens", f"{summary.total_input_tokens:,}")
+                tc2.metric("Output Tokens", f"{summary.total_output_tokens:,}")
+                
+                # By agent
+                if summary.calls_by_agent:
+                    st.markdown("### Usage by Agent")
+                    for agent, stats in sorted(summary.calls_by_agent.items()):
+                        st.markdown(f'**{agent}**: {stats["calls"]} calls, {stats["tokens"]:,} tokens')
+                
+                # Errors
+                if summary.errors:
+                    st.markdown("### Errors")
+                    for err in summary.errors[:5]:
+                        st.error(err[:200])
 
     # ─── Onboarding (Apple "How it works") ──────────
     if not st.session_state.started:
