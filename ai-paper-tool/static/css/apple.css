@@ -495,19 +495,23 @@ p, li, span, label, div {
     display: none !important;
 }
 
-/* Slider live value badge (beside the slider) */
+/* Slider live value badge (beside the slider).
+   NOTE: the badge column is narrow (~1/4 of the slider cell), so the
+   number must stay small enough that "50篇" never overflows its cell —
+   1.7rem overflowed and the unit got clipped at the cell edge. */
 .apple-slider-value {
-    font-size: 1.7rem !important;
+    font-size: 1.4rem !important;
     font-weight: 700 !important;
     color: var(--apple-blue) !important;
     text-align: center !important;
     line-height: 1.1 !important;
-    padding-top: 1.15rem !important;
+    padding-top: 1.25rem !important;
     white-space: nowrap !important;
+    overflow: visible !important;
 }
 
 .apple-slider-value span {
-    font-size: 0.85rem !important;
+    font-size: 0.8rem !important;
     font-weight: 400 !important;
     color: var(--apple-black-48) !important;
     margin-left: 2px;
@@ -1130,6 +1134,12 @@ hr {
     }
     .apple-hero-section {
         padding: 3.25rem 0 var(--sp-15);
+    }
+    .apple-slider-value {
+        /* Narrow screens: let the unit wrap under the number instead of
+           overflowing the badge cell. */
+        font-size: 1.15rem !important;
+        white-space: normal !important;
     }
     .apple-filters-row {
         gap: var(--sp-4);

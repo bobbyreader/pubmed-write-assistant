@@ -1,7 +1,7 @@
 """
 Streamlit Frontend for AI Paper Tool.
 Apple Design System — Clean, cinematic, binary light/dark rhythm.
-BUILD: 2026-10-24T14:45+08:00
+BUILD: 2026-10-24T15:10+08:00
 """
 import os
 import hmac
@@ -295,7 +295,7 @@ def page_main():
             # A: big live value badge beside the slider — the built-in
             # slider value is tiny grey text that is easy to miss while
             # dragging, so the current value gets its own large readout.
-            scol, vcol = st.columns([4, 1])
+            scol, vcol = st.columns([3, 1])
             with scol:
                 search_top_k = st.slider(t("filter_papers"), min_value=5, max_value=50, value=20, step=5)
             with vcol:
