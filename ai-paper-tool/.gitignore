@@ -9,3 +9,6 @@ venv/
 .mypy_cache/
 streamlit/
 .DS_Store
+.omc/
+checkpoints/*.json
+metrics/

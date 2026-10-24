@@ -4,6 +4,7 @@ Apple Design System — Clean, cinematic, binary light/dark rhythm.
 BUILD: 2026-04-15T13:35+08:00
 """
 import os
+import hmac
 import logging
 import threading
 import queue
@@ -13,7 +14,6 @@ from typing import Optional
 
 import streamlit as st
 
-from workflows.writing_pipeline import WritingPipeline
 from workflows.writing_pipeline_with_checkpoint import WritingPipelineWithCheckpoint
 from utils.export_service import export_word, export_pdf
 from backend.services.metrics_service import MetricsService
@@ -782,8 +782,37 @@ def page_settings():
         st.markdown("</div>", unsafe_allow_html=True)
 
 
+# ─── Access Gate ───────────────────────────────────
+def require_access():
+    """Password gate, active only when the APP_PASSWORD env var is set
+    (e.g. on Render). Local runs without it stay open."""
+    password = os.getenv("APP_PASSWORD", "")
+    if not password:
+        return
+    if st.session_state.get("access_granted"):
+        return
+    st.title("🔒 需要访问口令")
+    st.caption("此部署已启用访问保护，请输入口令继续。")
+    with st.form("access_form"):
+        entered = st.text_input("访问口令", type="password")
+        submitted = st.form_submit_button("进入")
+    if submitted:
+        if hmac.compare_digest(entered, password):
+            st.session_state["access_granted"] = True
+            st.rerun()
+        else:
+            st.error("口令不正确，请重试。")
+    st.stop()
+
+
 # ─── Main ──────────────────────────────────────────
 def main():
+    require_access()
+    if not os.getenv("APP_PASSWORD"):
+        st.sidebar.warning(
+            "⚠️ 未设置 APP_PASSWORD 环境变量：当前为开放访问，"
+            "任何打开链接的人都能使用本部署并消耗 API 额度。"
+        )
     pg = st.navigation([
         st.Page(page_main, title="Generate"),
         st.Page(page_settings, title="Settings"),

@@ -8,50 +8,50 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 
 
 class TestWritingPipeline:
-    @patch("workflows.writing_pipeline.LLMService")
-    @patch("workflows.writing_pipeline.SearchService")
-    @patch("workflows.writing_pipeline.CitationService")
+    @patch("workflows.writing_pipeline_with_checkpoint.LLMService")
+    @patch("workflows.writing_pipeline_with_checkpoint.SearchService")
+    @patch("workflows.writing_pipeline_with_checkpoint.CitationService")
     def test_pipeline_search_no_results_returns_error(self, mock_cs, mock_ss, mock_llm):
-        from workflows.writing_pipeline import WritingPipeline
+        from workflows.writing_pipeline_with_checkpoint import WritingPipelineWithCheckpoint
 
         # Researcher returns empty
         mock_search_result = MagicMock()
         mock_search_result.success = False
         mock_search_result.error = "No papers found"
 
-        with patch("workflows.writing_pipeline.ResearcherAgent") as mock_ra:
+        with patch("workflows.writing_pipeline_with_checkpoint.ResearcherAgent") as mock_ra:
             mock_ra.return_value.run_search.return_value = mock_search_result
-            with patch("workflows.writing_pipeline.WriterAgent"):
-                with patch("workflows.writing_pipeline.ReviewerAgent"):
-                    with patch("workflows.writing_pipeline.EditorAgent"):
-                        pipeline = WritingPipeline()
+            with patch("workflows.writing_pipeline_with_checkpoint.WriterAgent"):
+                with patch("workflows.writing_pipeline_with_checkpoint.ReviewerAgent"):
+                    with patch("workflows.writing_pipeline_with_checkpoint.EditorAgent"):
+                        pipeline = WritingPipelineWithCheckpoint(enable_checkpoint=False)
                         result = pipeline.run("nonexistent topic xyz")
 
         assert result.success is False
         assert "No papers found" in result.error
 
-    @patch("workflows.writing_pipeline.LLMService")
-    @patch("workflows.writing_pipeline.SearchService")
-    @patch("workflows.writing_pipeline.CitationService")
+    @patch("workflows.writing_pipeline_with_checkpoint.LLMService")
+    @patch("workflows.writing_pipeline_with_checkpoint.SearchService")
+    @patch("workflows.writing_pipeline_with_checkpoint.CitationService")
     def test_pipeline_search_fails_returns_error(self, mock_cs, mock_ss, mock_llm):
-        from workflows.writing_pipeline import WritingPipeline
+        from workflows.writing_pipeline_with_checkpoint import WritingPipelineWithCheckpoint
 
-        with patch("workflows.writing_pipeline.ResearcherAgent") as mock_ra:
+        with patch("workflows.writing_pipeline_with_checkpoint.ResearcherAgent") as mock_ra:
             mock_ra.return_value.run_search.side_effect = Exception("Network failure")
-            with patch("workflows.writing_pipeline.WriterAgent"):
-                with patch("workflows.writing_pipeline.ReviewerAgent"):
-                    with patch("workflows.writing_pipeline.EditorAgent"):
-                        pipeline = WritingPipeline()
+            with patch("workflows.writing_pipeline_with_checkpoint.WriterAgent"):
+                with patch("workflows.writing_pipeline_with_checkpoint.ReviewerAgent"):
+                    with patch("workflows.writing_pipeline_with_checkpoint.EditorAgent"):
+                        pipeline = WritingPipelineWithCheckpoint(enable_checkpoint=False)
                         result = pipeline.run("test topic")
 
         assert result.success is False
         assert "Research failed" in result.error
 
-    @patch("workflows.writing_pipeline.LLMService")
-    @patch("workflows.writing_pipeline.SearchService")
-    @patch("workflows.writing_pipeline.CitationService")
+    @patch("workflows.writing_pipeline_with_checkpoint.LLMService")
+    @patch("workflows.writing_pipeline_with_checkpoint.SearchService")
+    @patch("workflows.writing_pipeline_with_checkpoint.CitationService")
     def test_pipeline_writer_fails_returns_error(self, mock_cs, mock_ss, mock_llm):
-        from workflows.writing_pipeline import WritingPipeline
+        from workflows.writing_pipeline_with_checkpoint import WritingPipelineWithCheckpoint
 
         # Researcher succeeds
         search_result = MagicMock()
@@ -65,25 +65,25 @@ class TestWritingPipeline:
         write_result.success = False
         write_result.error = "Writer timeout"
 
-        with patch("workflows.writing_pipeline.ResearcherAgent") as mock_ra:
+        with patch("workflows.writing_pipeline_with_checkpoint.ResearcherAgent") as mock_ra:
             mock_ra.return_value.run_search.return_value = search_result
-            with patch("workflows.writing_pipeline.WriterAgent") as mock_wa:
+            with patch("workflows.writing_pipeline_with_checkpoint.WriterAgent") as mock_wa:
                 mock_wa.return_value.run.return_value = write_result
-                with patch("workflows.writing_pipeline.ReviewerAgent"):
-                    with patch("workflows.writing_pipeline.EditorAgent"):
-                        pipeline = WritingPipeline()
+                with patch("workflows.writing_pipeline_with_checkpoint.ReviewerAgent"):
+                    with patch("workflows.writing_pipeline_with_checkpoint.EditorAgent"):
+                        pipeline = WritingPipelineWithCheckpoint(enable_checkpoint=False)
                         result = pipeline.run("test topic")
 
         assert result.success is False
         assert "Writer failed" in result.error
 
-    @patch("workflows.writing_pipeline.LLMService")
-    @patch("workflows.writing_pipeline.SearchService")
-    @patch("workflows.writing_pipeline.CitationService")
+    @patch("workflows.writing_pipeline_with_checkpoint.LLMService")
+    @patch("workflows.writing_pipeline_with_checkpoint.SearchService")
+    @patch("workflows.writing_pipeline_with_checkpoint.CitationService")
     def test_pipeline_assembles_draft_correctly(self, mock_cs, mock_ss, mock_llm):
-        from workflows.writing_pipeline import WritingPipeline
+        from workflows.writing_pipeline_with_checkpoint import WritingPipelineWithCheckpoint
 
-        pipeline = WritingPipeline()
+        pipeline = WritingPipelineWithCheckpoint(enable_checkpoint=False)
         draft_data = {
             "outline": "Outline: I. Background\nII. Methods",
             "abstract": "Abstract: This study...",
@@ -106,11 +106,11 @@ class TestWritingPipeline:
         assert "## Conclusion" in draft
         assert "Outline:" in draft
 
-    @patch("workflows.writing_pipeline.LLMService")
-    @patch("workflows.writing_pipeline.SearchService")
-    @patch("workflows.writing_pipeline.CitationService")
+    @patch("workflows.writing_pipeline_with_checkpoint.LLMService")
+    @patch("workflows.writing_pipeline_with_checkpoint.SearchService")
+    @patch("workflows.writing_pipeline_with_checkpoint.CitationService")
     def test_pipeline_review_round_records_score(self, mock_cs, mock_ss, mock_llm):
-        from workflows.writing_pipeline import WritingPipeline
+        from workflows.writing_pipeline_with_checkpoint import WritingPipelineWithCheckpoint
 
         search_result = MagicMock()
         search_result.success = True
@@ -133,15 +133,15 @@ class TestWritingPipeline:
             "hallucination_flags": ["[99] invented"],
         }
 
-        with patch("workflows.writing_pipeline.ResearcherAgent") as mock_ra:
+        with patch("workflows.writing_pipeline_with_checkpoint.ResearcherAgent") as mock_ra:
             mock_ra.return_value.run_search.return_value = search_result
-            with patch("workflows.writing_pipeline.WriterAgent") as mock_wa:
+            with patch("workflows.writing_pipeline_with_checkpoint.WriterAgent") as mock_wa:
                 mock_wa.return_value.run.return_value = write_result
-                with patch("workflows.writing_pipeline.ReviewerAgent") as mock_rv:
+                with patch("workflows.writing_pipeline_with_checkpoint.ReviewerAgent") as mock_rv:
                     mock_rv.return_value.run.return_value = review_result
-                    with patch("workflows.writing_pipeline.EditorAgent") as mock_ed:
+                    with patch("workflows.writing_pipeline_with_checkpoint.EditorAgent") as mock_ed:
                         mock_ed.return_value.run.return_value = MagicMock(success=True, content={})
-                        pipeline = WritingPipeline()
+                        pipeline = WritingPipelineWithCheckpoint(enable_checkpoint=False)
                         result = pipeline.run("test topic", max_rounds=1)
 
         assert result.success is True
@@ -152,11 +152,11 @@ class TestWritingPipeline:
         assert review_rounds[0].score == 7.5
         assert "[99]" in review_rounds[0].notes
 
-    @patch("workflows.writing_pipeline.LLMService")
-    @patch("workflows.writing_pipeline.SearchService")
-    @patch("workflows.writing_pipeline.CitationService")
+    @patch("workflows.writing_pipeline_with_checkpoint.LLMService")
+    @patch("workflows.writing_pipeline_with_checkpoint.SearchService")
+    @patch("workflows.writing_pipeline_with_checkpoint.CitationService")
     def test_pipeline_early_exit_on_high_score(self, mock_cs, mock_ss, mock_llm):
-        from workflows.writing_pipeline import WritingPipeline
+        from workflows.writing_pipeline_with_checkpoint import WritingPipelineWithCheckpoint
 
         search_result = MagicMock()
         search_result.success = True
@@ -180,15 +180,15 @@ class TestWritingPipeline:
             "hallucination_flags": [],
         }
 
-        with patch("workflows.writing_pipeline.ResearcherAgent") as mock_ra:
+        with patch("workflows.writing_pipeline_with_checkpoint.ResearcherAgent") as mock_ra:
             mock_ra.return_value.run_search.return_value = search_result
-            with patch("workflows.writing_pipeline.WriterAgent") as mock_wa:
+            with patch("workflows.writing_pipeline_with_checkpoint.WriterAgent") as mock_wa:
                 mock_wa.return_value.run.return_value = write_result
-                with patch("workflows.writing_pipeline.ReviewerAgent") as mock_rv:
+                with patch("workflows.writing_pipeline_with_checkpoint.ReviewerAgent") as mock_rv:
                     mock_rv.return_value.run.return_value = review_result
-                    with patch("workflows.writing_pipeline.EditorAgent") as mock_ed:
+                    with patch("workflows.writing_pipeline_with_checkpoint.EditorAgent") as mock_ed:
                         # Editor should NOT be called due to early exit
-                        pipeline = WritingPipeline()
+                        pipeline = WritingPipelineWithCheckpoint(enable_checkpoint=False)
                         result = pipeline.run("test topic", max_rounds=3)
 
         assert result.success is True
@@ -196,11 +196,11 @@ class TestWritingPipeline:
         # Editor should not have been called
         mock_ed.return_value.run.assert_not_called()
 
-    @patch("workflows.writing_pipeline.LLMService")
-    @patch("workflows.writing_pipeline.SearchService")
-    @patch("workflows.writing_pipeline.CitationService")
+    @patch("workflows.writing_pipeline_with_checkpoint.LLMService")
+    @patch("workflows.writing_pipeline_with_checkpoint.SearchService")
+    @patch("workflows.writing_pipeline_with_checkpoint.CitationService")
     def test_pipeline_progress_callback_all_phases(self, mock_cs, mock_ss, mock_llm):
-        from workflows.writing_pipeline import WritingPipeline
+        from workflows.writing_pipeline_with_checkpoint import WritingPipelineWithCheckpoint
 
         search_result = MagicMock()
         search_result.success = True
@@ -225,15 +225,15 @@ class TestWritingPipeline:
         def capture_cb(phase, msg, fraction):
             progress_calls.append((phase, msg, fraction))
 
-        with patch("workflows.writing_pipeline.ResearcherAgent") as mock_ra:
+        with patch("workflows.writing_pipeline_with_checkpoint.ResearcherAgent") as mock_ra:
             mock_ra.return_value.run_search.return_value = search_result
-            with patch("workflows.writing_pipeline.WriterAgent") as mock_wa:
+            with patch("workflows.writing_pipeline_with_checkpoint.WriterAgent") as mock_wa:
                 mock_wa.return_value.run.return_value = write_result
-                with patch("workflows.writing_pipeline.ReviewerAgent") as mock_rv:
+                with patch("workflows.writing_pipeline_with_checkpoint.ReviewerAgent") as mock_rv:
                     mock_rv.return_value.run.return_value = review_result
-                    with patch("workflows.writing_pipeline.EditorAgent") as mock_ed:
+                    with patch("workflows.writing_pipeline_with_checkpoint.EditorAgent") as mock_ed:
                         mock_ed.return_value.run.return_value = MagicMock(success=True, content={})
-                        pipeline = WritingPipeline()
+                        pipeline = WritingPipelineWithCheckpoint(enable_checkpoint=False)
                         pipeline.set_progress_callback(capture_cb)
                         # max_rounds=2 so edit phase is actually called (round_i=1: 1<2=True)
                         pipeline.run("test topic", max_rounds=2)

@@ -1,3 +1,4 @@
 .DS_Store
 .omc/
 .claude/settings.local.json
+.vscode/
