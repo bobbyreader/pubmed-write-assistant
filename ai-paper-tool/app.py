@@ -1,7 +1,7 @@
 """
 Streamlit Frontend for AI Paper Tool.
 Apple Design System — Clean, cinematic, binary light/dark rhythm.
-BUILD: 2026-10-24T12:05+08:00
+BUILD: 2026-10-24T12:20+08:00
 """
 import os
 import hmac
@@ -222,11 +222,17 @@ def render_round_card(record):
 
 # ─── Page: Main ────────────────────────────────────
 def page_main():
-    # ─── Hero Section (Apple dark cinematic) ──────
-    st.markdown('<div class="apple-hero-section">', unsafe_allow_html=True)
-    st.markdown('<h1 class="apple-hero-title">PubMed Paper Assistant</h1>', unsafe_allow_html=True)
-    st.markdown('<p class="apple-body" style="max-width:540px;margin:0 auto;">Generate publication-ready research papers with verified citations — powered by AI, constrained by truth.</p>', unsafe_allow_html=True)
-    st.markdown('</div>', unsafe_allow_html=True)
+    # ─── Hero Section ─────────────────────────────
+    # NOTE: the whole hero must be ONE st.markdown call — Streamlit closes
+    # HTML tags within each call, so a div opened in one call never wraps
+    # elements from later calls (it renders as an empty panel).
+    st.markdown("""
+    <div class="apple-hero-section">
+      <div class="apple-hero-eyebrow">AI Research Paper Writer</div>
+      <h1 class="apple-hero-title">PubMed Paper Assistant</h1>
+      <p class="apple-body apple-hero-sub">Generate publication-ready research papers with verified citations — powered by AI, constrained by truth.</p>
+    </div>
+    """, unsafe_allow_html=True)
 
     # ─── Sidebar ─────────────────────────────────────
     with st.sidebar:
@@ -269,34 +275,30 @@ def page_main():
                 del st.session_state[key]
             st.rerun()
 
-    st.markdown("")
+    # ─── Composer: topic + filters in one card ─────
+    with st.container(key="composer"):
+        st.markdown('<div class="apple-composer-label">Research Topic</div>', unsafe_allow_html=True)
+        topic = st.text_input(
+            "",
+            placeholder="Search research topic — e.g. LLM reasoning in scientific discovery",
+            label_visibility="collapsed",
+            key="hero_topic_input",
+        )
 
-    # ─── Search & Filter Section ───────────────────
-    st.markdown('<div class="apple-search-wrapper">', unsafe_allow_html=True)
-    topic = st.text_input(
-        "",
-        placeholder="Search research topic — e.g. LLM reasoning in scientific discovery",
-        label_visibility="collapsed",
-        key="hero_topic_input",
-    )
-    st.markdown('</div>', unsafe_allow_html=True)
+        col1, col2, col3 = st.columns([1.5, 1, 1])
+        with col1:
+            search_top_k = st.slider("Papers to retrieve", min_value=5, max_value=50, value=20, step=5)
+        with col2:
+            year_from = st.number_input("Year from", min_value=1990, max_value=2026, value=2018)
+        with col3:
+            year_to = st.number_input("Year to", min_value=1990, max_value=2026, value=2026)
 
-    # Filters row
-    col1, col2 = st.columns(2)
-    with col1:
-        search_top_k = st.slider("Papers to retrieve", min_value=5, max_value=50, value=20, step=5)
-    with col2:
-        year_from = st.number_input("Year from", min_value=1990, max_value=2026, value=2018)
+        col4, col5 = st.columns(2)
+        with col4:
+            author = st.text_input("Author", placeholder="Any author")
+        with col5:
+            venue = st.text_input("Journal / Venue", placeholder="Any journal")
 
-    col3, col4, col5 = st.columns(3)
-    with col3:
-        year_to = st.number_input("Year to", min_value=1990, max_value=2026, value=2026)
-    with col4:
-        author = st.text_input("Author", placeholder="Any author", label_visibility="collapsed")
-    with col5:
-        venue = st.text_input("Journal / Venue", placeholder="Any journal", label_visibility="collapsed")
-
-    st.markdown("")
 
     # Seed papers: import research-assistant favorites backup (optional)
     with st.expander("📥 种子文献：导入研究助手收藏（可选）"):

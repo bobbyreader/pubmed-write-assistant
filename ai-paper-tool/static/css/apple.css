@@ -119,8 +119,8 @@ html {
 }
 
 .stApp [data-testid="stMainBlockContainer"] {
-    padding-top: var(--sp-13) !important;
-    max-width: 1060px !important;
+    padding-top: var(--sp-6) !important;
+    max-width: 1140px !important;
 }
 
 /* ─── Scrollbar ─────────────────────────────── */
@@ -150,7 +150,7 @@ p, li, span, label, div {
 /* Apple typography scale */
 .apple-hero-title {
     font-family: var(--font-display) !important;
-    font-size: 2.9rem !important;      /* 46px — Display Hero */
+    font-size: 2.35rem !important;     /* ~38px — Display Hero */
     font-weight: 600 !important;
     line-height: 1.07 !important;
     letter-spacing: -0.28px !important;
@@ -320,8 +320,8 @@ p, li, span, label, div {
     border: 1px solid rgba(101, 78, 44, 0.16);
     border-radius: var(--apple-radius-lg);
     box-shadow: var(--apple-shadow-sm);
-    padding: var(--sp-17) var(--sp-13) var(--sp-16);
-    margin: 0 0 var(--sp-16);
+    padding: 30px 24px 26px;
+    margin: 0 0 var(--sp-14);
     text-align: center;
     animation: fadeInUp 600ms ease-out;
 }
@@ -340,21 +340,47 @@ p, li, span, label, div {
     color: var(--apple-black-48) !important;
 }
 
-/* ─── Hero Search ─────────────────────────── */
-/* Filter/Search Button style: light bg, subtle border */
-.apple-search-wrapper {
-    background: var(--apple-white);
-    border: 1px solid rgba(101, 78, 44, 0.22);
-    border-radius: var(--apple-radius-comfort);
-    padding: var(--sp-2) var(--sp-10);
-    transition: border-color var(--apple-ease), box-shadow var(--apple-ease);
-    box-shadow: var(--apple-shadow-sm);
-    margin-bottom: var(--sp-9);
+/* ─── Hero extras ──────────────────────────── */
+.apple-hero-eyebrow {
+    font-size: 0.72rem !important;
+    font-weight: 700 !important;
+    letter-spacing: 0.14em !important;
+    text-transform: uppercase !important;
+    color: var(--apple-blue) !important;
+    margin-bottom: var(--sp-6) !important;
 }
 
-.apple-search-wrapper:focus-within {
-    border-color: var(--apple-blue);
-    box-shadow: 0 0 0 4px rgba(179, 64, 47, 0.14), var(--apple-shadow-sm);
+.apple-hero-sub {
+    max-width: 620px;
+    margin: 0 auto !important;
+    font-size: 1rem !important;
+}
+
+/* ─── Composer card (topic + filters) ──────── */
+/* st.container(key="composer") renders with class .st-key-composer and
+   genuinely wraps its widgets — unlike a markdown div, which cannot. */
+.st-key-composer {
+    background: var(--apple-white);
+    border: 1px solid rgba(101, 78, 44, 0.16);
+    border-radius: var(--apple-radius-lg);
+    box-shadow: var(--apple-shadow-sm);
+    padding: 18px 22px 8px;
+    margin-bottom: var(--sp-14);
+}
+
+.apple-composer-label {
+    font-size: 0.78rem !important;
+    font-weight: 700 !important;
+    letter-spacing: 0.08em !important;
+    text-transform: uppercase !important;
+    color: var(--apple-black-48) !important;
+    margin-bottom: var(--sp-3) !important;
+}
+
+.st-key-composer [data-testid="stTextInput"] input {
+    font-size: 1.02rem !important;
+    padding-top: 0.55rem !important;
+    padding-bottom: 0.55rem !important;
 }
 
 /* ─── Filter Row ─────────────────────────── */
