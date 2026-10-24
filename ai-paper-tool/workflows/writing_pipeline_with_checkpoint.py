@@ -17,6 +17,7 @@ from backend.services.llm_service import LLMService
 from backend.services.rag_service import RAGService
 from backend.services.search_service import SearchService
 from backend.services.checkpoint_service import Checkpoint, CheckpointService
+from utils.i18n import pm
 
 logger = logging.getLogger(__name__)
 
@@ -115,6 +116,7 @@ class WritingPipelineWithCheckpoint:
         author: str = None,
         venue: str = None,
         seed_papers: list = None,
+        lang: str = "en",
     ) -> PipelineResult:
         """
         Execute the full pipeline with optional checkpoint recovery.
@@ -138,7 +140,7 @@ class WritingPipelineWithCheckpoint:
 
                 # Resume from where we left off
                 if existing.current_phase == "write":
-                    self._emit("write", "Resuming from checkpoint...", 0.20)
+                    self._emit("write", pm("prog_resuming", lang), 0.20)
                     # Continue to review loop
                     current_phase = "review"
                     start_round = existing.current_round
@@ -162,20 +164,20 @@ class WritingPipelineWithCheckpoint:
 
         # ─── Phase 1: Research ───
         if citation_map is None and seed_papers:
-            self._emit("research", f"Using {len(seed_papers)} imported seed papers...", 0.05)
+            self._emit("research", pm("prog_seeds", lang, n=len(seed_papers)), 0.05)
             seed_result = self.researcher.run_seed(seed_papers)
             if not seed_result.success:
-                return PipelineResult(success=False, error=seed_result.error)
+                return PipelineResult(success=False, error=pm("err_no_papers", lang))
             citation_map = seed_result.content["citation_map"]
             self.rounds.append(RoundRecord(
                 round_num=0,
                 phase="search",
-                notes=f"Imported {len(citation_map)} seed papers from research-assistant favorites",
+                notes=pm("note_seeds", lang, n=len(citation_map)),
             ))
             self._save_checkpoint(topic, "research", 0, citation_map, "")
 
         if citation_map is None:
-            self._emit("research", "Searching Semantic Scholar and PubMed...", 0.05)
+            self._emit("research", pm("prog_searching", lang), 0.05)
             try:
                 search_result = self.researcher.run_search(
                     topic,
@@ -186,16 +188,16 @@ class WritingPipelineWithCheckpoint:
                     venue=venue,
                 )
                 if not search_result.success:
-                    return PipelineResult(success=False, error=search_result.error)
+                    return PipelineResult(success=False, error=pm("err_no_papers", lang))
                 citation_map = search_result.content["citation_map"]
             except Exception as e:
                 logger.exception("Research phase failed")
-                return PipelineResult(success=False, error=f"Research failed: {e}")
+                return PipelineResult(success=False, error=pm("err_research", lang, e=e))
 
             search_record = RoundRecord(
                 round_num=0,
                 phase="search",
-                notes=f"Found {len(citation_map)} papers",
+                notes=pm("note_found", lang, n=len(citation_map)),
             )
             self.rounds.append(search_record)
             self._save_checkpoint(topic, "research", 0, citation_map, "")
@@ -203,7 +205,7 @@ class WritingPipelineWithCheckpoint:
         if not citation_map:
             return PipelineResult(
                 success=False,
-                error="No papers found for this topic. Try different keywords.",
+                error=pm("err_no_papers", lang),
             )
 
         # Keep CitationService in sync: abstracts context, reference
@@ -214,20 +216,20 @@ class WritingPipelineWithCheckpoint:
 
         # ─── Phase 2: Write ───
         if current_draft is None:
-            self._emit("write", "Generating outline, introduction and related work...", 0.20)
+            self._emit("write", pm("prog_writing", lang), 0.20)
             try:
                 write_result = self.writer.run(topic, citation_map, abstracts_context)
                 if not write_result.success:
                     return PipelineResult(
                         success=False,
-                        error=f"Writer failed: {write_result.error}",
+                        error=pm("err_writer", lang, e=write_result.error),
                         citation_map=citation_map,
                     )
                 draft_data = write_result.content
                 current_draft = self._assemble_draft(topic, draft_data)
             except Exception as e:
                 logger.exception("Writer phase failed")
-                return PipelineResult(success=False, error=f"Writer failed: {e}")
+                return PipelineResult(success=False, error=pm("err_writer", lang, e=e))
 
             write_record = RoundRecord(
                 round_num=1,
@@ -240,7 +242,7 @@ class WritingPipelineWithCheckpoint:
         # ─── Phase 3: Review + Edit Loop ───
         for round_i in range(max(1, start_round), max_rounds + 1):
             logger.info(f"Review round {round_i}/{max_rounds}")
-            self._emit("review", f"Reviewing draft (round {round_i}/{max_rounds})...", 0.25 + (round_i - 1) * 0.20)
+            self._emit("review", pm("prog_review", lang, r=round_i, n=max_rounds), 0.25 + (round_i - 1) * 0.20)
 
             review_result = self.reviewer.run(
                 topic=topic,
@@ -281,7 +283,7 @@ class WritingPipelineWithCheckpoint:
                     )
 
             if round_i < max_rounds:
-                self._emit("edit", f"Editing and improving (round {round_i}/{max_rounds})...", 0.35 + (round_i - 1) * 0.20)
+                self._emit("edit", pm("prog_edit", lang, r=round_i, n=max_rounds), 0.35 + (round_i - 1) * 0.20)
                 edit_result = self.editor.run(
                     topic=topic,
                     original_draft=current_draft,
@@ -302,7 +304,7 @@ class WritingPipelineWithCheckpoint:
                 self._save_checkpoint(topic, "edit", round_i, citation_map, current_draft)
 
         # ─── Final assembly ───
-        self._emit("finalize", "Formatting references and finalizing...", 0.98)
+        self._emit("finalize", pm("prog_finalize", lang), 0.98)
         references = self.citation_service.format_for_references()
         self._clear_checkpoint()
         logger.info("Pipeline complete")

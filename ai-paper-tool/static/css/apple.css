@@ -303,6 +303,23 @@ p, li, span, label, div {
     font-weight: 600 !important;
 }
 
+/* ─── Language toggle — fixed top-right pill ─── */
+.st-key-lang {
+    position: fixed !important;
+    top: 0.55rem;
+    right: 3.4rem;
+    z-index: 1000001;
+    width: auto !important;
+}
+
+.st-key-lang [data-testid="stSegmentedControl"] {
+    background: var(--apple-white);
+    border: 1px solid rgba(101, 78, 44, 0.22);
+    border-radius: var(--apple-radius-pill);
+    padding: 2px;
+    box-shadow: var(--apple-shadow-sm);
+}
+
 /* ─── Sidebar ──────────────────────────────── */
 [data-testid="stSidebar"] {
     background: #efe4cc !important;
