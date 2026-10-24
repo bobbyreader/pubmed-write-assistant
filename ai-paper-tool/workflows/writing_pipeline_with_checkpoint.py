@@ -114,6 +114,7 @@ class WritingPipelineWithCheckpoint:
         year_to: int = None,
         author: str = None,
         venue: str = None,
+        seed_papers: list = None,
     ) -> PipelineResult:
         """
         Execute the full pipeline with optional checkpoint recovery.
@@ -160,6 +161,19 @@ class WritingPipelineWithCheckpoint:
             start_round = 0
 
         # ─── Phase 1: Research ───
+        if citation_map is None and seed_papers:
+            self._emit("research", f"Using {len(seed_papers)} imported seed papers...", 0.05)
+            seed_result = self.researcher.run_seed(seed_papers)
+            if not seed_result.success:
+                return PipelineResult(success=False, error=seed_result.error)
+            citation_map = seed_result.content["citation_map"]
+            self.rounds.append(RoundRecord(
+                round_num=0,
+                phase="search",
+                notes=f"Imported {len(citation_map)} seed papers from research-assistant favorites",
+            ))
+            self._save_checkpoint(topic, "research", 0, citation_map, "")
+
         if citation_map is None:
             self._emit("research", "Searching Semantic Scholar and PubMed...", 0.05)
             try:
@@ -192,6 +206,10 @@ class WritingPipelineWithCheckpoint:
                 error="No papers found for this topic. Try different keywords.",
             )
 
+        # Keep CitationService in sync: abstracts context, reference
+        # formatting and RAG all read from it. (It was previously never
+        # populated, which left references and abstracts context empty.)
+        self.citation_service.set_citation_map(citation_map)
         abstracts_context = self.citation_service.abstracts_context()
 
         # ─── Phase 2: Write ───

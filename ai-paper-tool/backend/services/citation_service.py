@@ -44,6 +44,28 @@ class CitationService:
         logger.info(f"Built citation_map with {len(self.citation_map)} papers")
         return self.citation_map
 
+    def set_citation_map(self, citation_map: dict[str, dict]) -> dict[str, dict]:
+        """
+        Adopt an existing citation_map (from the Researcher agent, a
+        checkpoint, or imported seed papers), normalizing each entry to the
+        canonical field set used by abstracts_context / references / RAG.
+        """
+        self.citation_map = {}
+        for key, paper in (citation_map or {}).items():
+            self.citation_map[key] = {
+                "title": paper.get("title", "Unknown Title"),
+                "paperId": paper.get("paperId", ""),
+                "doi": paper.get("doi"),
+                "year": paper.get("year"),
+                "authors": paper.get("authors", []),
+                "abstract": paper.get("abstract", ""),
+                "url": paper.get("url", ""),
+                "venue": paper.get("venue"),
+                "citationCount": paper.get("citationCount", 0),
+            }
+        logger.info(f"Citation map set with {len(self.citation_map)} papers")
+        return self.citation_map
+
     def get(self, cite_id: str) -> Optional[dict]:
         """Get paper metadata by citation ID (e.g., '[1]')."""
         return self.citation_map.get(cite_id)

@@ -89,3 +89,24 @@ class ResearcherAgent(BaseAgent):
                 error="No papers found for this topic. Try different keywords.",
             )
         return AgentResponse(success=True, content={"citation_map": citation_map})
+
+    @staticmethod
+    def build_citation_map(papers: list[dict]) -> dict[str, dict]:
+        """Build a citation_map from an existing list of paper dicts."""
+        return {f"[{i}]": paper for i, paper in enumerate(papers, start=1)}
+
+    def run_seed(self, papers: list[dict]) -> AgentResponse:
+        """
+        Use pre-retrieved papers (e.g. imported research-assistant
+        favorites) as the literature set instead of searching.
+        """
+        if not papers:
+            return AgentResponse(
+                success=False,
+                error="No seed papers provided.",
+            )
+        return AgentResponse(
+            success=True,
+            content={"citation_map": self.build_citation_map(papers)},
+        )
+

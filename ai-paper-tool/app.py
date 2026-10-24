@@ -1,7 +1,7 @@
 """
 Streamlit Frontend for AI Paper Tool.
 Apple Design System — Clean, cinematic, binary light/dark rhythm.
-BUILD: 2026-10-24T11:15+08:00
+BUILD: 2026-10-24T11:40+08:00
 """
 import os
 import hmac
@@ -46,6 +46,7 @@ def _init_state():
     defaults = {
         "citation_map": {},
         "topic": "",
+        "seed_papers": [],
         "pipeline_result": None,
         "rounds": [],
         "started": False,
@@ -297,6 +298,36 @@ def page_main():
 
     st.markdown("")
 
+    # Seed papers: import research-assistant favorites backup (optional)
+    with st.expander("📥 种子文献：导入研究助手收藏（可选）"):
+        st.caption("在 PubMed 研究助手里点「导出备份 (JSON)」得到的文件可直接导入。导入后将跳过在线检索、直接以收藏作为种子文献写作，并自动从 PubMed 补齐摘要。")
+        seed_file = st.file_uploader("选择收藏备份 JSON", type=["json"], key="seed_upload")
+        if seed_file is not None:
+            sig = f"{seed_file.name}:{seed_file.size}"
+            if st.session_state.get("seed_file_sig") != sig:
+                try:
+                    import json as _json
+                    from backend.services.favorites_import import parse_favorites_backup, enrich_abstracts
+                    data = _json.loads(seed_file.getvalue().decode("utf-8"))
+                    papers = parse_favorites_backup(data)
+                    with st.spinner("正在从 PubMed 补齐摘要…"):
+                        papers = enrich_abstracts(papers)
+                    st.session_state.seed_papers = papers
+                    st.session_state.seed_file_sig = sig
+                    st.success(f"已导入 {len(papers)} 篇种子文献")
+                except Exception as e:
+                    st.error(f"导入失败：{e}")
+        if st.session_state.get("seed_papers"):
+            st.write(f"当前种子文献：{len(st.session_state.seed_papers)} 篇")
+            for _p in st.session_state.seed_papers[:5]:
+                st.caption(f"• {_p.get('title', '')}（{_p.get('year') or '年份未知'}）")
+            if len(st.session_state.seed_papers) > 5:
+                st.caption(f"……等共 {len(st.session_state.seed_papers)} 篇")
+            if st.button("清除种子文献"):
+                st.session_state.seed_papers = []
+                st.session_state.seed_file_sig = ""
+                st.rerun()
+
     # Advanced settings
     with st.expander("Advanced Settings"):
         st.checkbox(
@@ -334,6 +365,7 @@ def page_main():
             yt: Optional[int],
             auth: Optional[str],
             ven: Optional[str],
+            seeds_in: Optional[list] = None,
         ):
             try:
                 pl = WritingPipelineWithCheckpoint(enable_checkpoint=st.session_state.get('enable_checkpoint', True))
@@ -347,6 +379,7 @@ def page_main():
                     year_to=yt if yt else None,
                     author=(auth or "").strip() or None,
                     venue=(ven or "").strip() or None,
+                    seed_papers=seeds_in or None,
                 )
                 q_out.put(("result", result))
             except Exception as e:
@@ -363,6 +396,7 @@ def page_main():
                 year_to,
                 author if (author or "").strip() else None,
                 venue if (venue or "").strip() else None,
+                list(st.session_state.get("seed_papers") or []),
             ),
             daemon=True,
         )
