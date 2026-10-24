@@ -331,13 +331,16 @@ p, li, span, label, div {
 }
 
 /* ─── Hero Section ─────────────────────────── */
-/* Cream panel on paper — no dark slab */
+/* Unboxed: eyebrow + title + subtitle sit directly on the paper, no card.
+   Generous top padding clears Streamlit's floating top toolbar, which
+   overlays the first ~46px of the page — with only 8px of block padding
+   the eyebrow used to slide underneath it and look clipped. */
 .apple-hero-section {
-    background: var(--apple-white);
-    border: 1px solid rgba(101, 78, 44, 0.16);
-    border-radius: var(--apple-radius-lg);
-    box-shadow: var(--apple-shadow-sm);
-    padding: 30px 24px 26px;
+    background: transparent;
+    border: none;
+    border-radius: 0;
+    box-shadow: none;
+    padding: 3.25rem 1rem 0.5rem;
     margin: 0 0 var(--sp-14);
     text-align: center;
     animation: fadeInUp 600ms ease-out;
@@ -1083,7 +1086,7 @@ hr {
         font-size: 1.3rem !important;
     }
     .apple-hero-section {
-        padding: var(--sp-16) 0 var(--sp-15);
+        padding: 3.25rem 0 var(--sp-15);
     }
     .apple-filters-row {
         gap: var(--sp-4);
