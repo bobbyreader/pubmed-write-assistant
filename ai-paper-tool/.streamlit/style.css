@@ -538,8 +538,16 @@ p, li, span, label, div {
     width: 100%;
 }
 
-.st-key-gate [data-testid="stForm"] button {
+/* Full-width ONLY for the form submit button. Do NOT set width on every
+   button inside the form: the password field's visibility toggle is
+   also a <button> inside the form, and forcing it to 100% splits the
+   password field into two side-by-side boxes. */
+.st-key-gate [data-testid="stFormSubmitButton"] button {
     width: 100%;
+}
+
+.st-key-gate [data-testid="stTextInput"] button {
+    width: auto !important;
 }
 
 /* ─── Buttons ─────────────────────────────── */
