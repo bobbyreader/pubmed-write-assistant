@@ -1,7 +1,7 @@
 """
 Streamlit Frontend for AI Paper Tool.
 Apple Design System — Clean, cinematic, binary light/dark rhythm.
-BUILD: 2026-10-24T11:00+08:00
+BUILD: 2026-10-24T11:15+08:00
 """
 import os
 import hmac
@@ -567,6 +567,7 @@ def page_settings():
                 st.text_input("ANTHROPIC_MODEL", value=env_model, disabled=True)
                 st.text_input("SEMANTICSCHOLAR_API_KEY (optional)", value="•" * 20 if env_ss_key else "", disabled=True)
                 st.info("Environment variables are read-only. Contact your administrator to change them.")
+                st.form_submit_button("Save to .env", disabled=True)
             else:
                 api_key = st.text_input("ANTHROPIC_API_KEY", value=env["api_key"], type="password", help="MiniMax API key")
                 base_url = st.text_input("ANTHROPIC_BASE_URL", value=env["base_url"], help="Anthropic-compatible endpoint")
