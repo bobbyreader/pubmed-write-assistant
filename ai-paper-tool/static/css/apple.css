@@ -490,9 +490,52 @@ p, li, span, label, div {
 }
 
 [data-testid="stSlider"] > div > div > span {
-    font-size: 0.75rem !important;
+    /* Built-in slider value is tiny grey text that is easy to miss while
+       dragging — hidden now that the big badge below shows the value. */
+    display: none !important;
+}
+
+/* Slider live value badge (beside the slider) */
+.apple-slider-value {
+    font-size: 1.7rem !important;
+    font-weight: 700 !important;
+    color: var(--apple-blue) !important;
+    text-align: center !important;
+    line-height: 1.1 !important;
+    padding-top: 1.15rem !important;
+    white-space: nowrap !important;
+}
+
+.apple-slider-value span {
+    font-size: 0.85rem !important;
+    font-weight: 400 !important;
     color: var(--apple-black-48) !important;
-    font-family: var(--font-text) !important;
+    margin-left: 2px;
+}
+
+/* ─── Access gate: centered on the whole page ─── */
+/* st.container(key="gate") renders with class .st-key-gate. */
+.st-key-gate {
+    min-height: 86svh;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    max-width: 460px;
+    margin: 0 auto;
+    padding: 0 1rem;
+    text-align: center;
+}
+
+.st-key-gate h1 {
+    text-align: center !important;
+}
+
+.st-key-gate [data-testid="stForm"] {
+    width: 100%;
+}
+
+.st-key-gate [data-testid="stForm"] button {
+    width: 100%;
 }
 
 /* ─── Buttons ─────────────────────────────── */

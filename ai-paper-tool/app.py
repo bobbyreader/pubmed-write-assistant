@@ -1,7 +1,7 @@
 """
 Streamlit Frontend for AI Paper Tool.
 Apple Design System — Clean, cinematic, binary light/dark rhythm.
-BUILD: 2026-10-24T14:35+08:00
+BUILD: 2026-10-24T14:45+08:00
 """
 import os
 import hmac
@@ -292,7 +292,17 @@ def page_main():
 
         col1, col2, col3 = st.columns([1.5, 1, 1])
         with col1:
-            search_top_k = st.slider(t("filter_papers"), min_value=5, max_value=50, value=20, step=5)
+            # A: big live value badge beside the slider — the built-in
+            # slider value is tiny grey text that is easy to miss while
+            # dragging, so the current value gets its own large readout.
+            scol, vcol = st.columns([4, 1])
+            with scol:
+                search_top_k = st.slider(t("filter_papers"), min_value=5, max_value=50, value=20, step=5)
+            with vcol:
+                st.markdown(
+                    f'<div class="apple-slider-value">{search_top_k}<span>{t("papers_unit")}</span></div>',
+                    unsafe_allow_html=True,
+                )
         with col2:
             year_from = st.number_input(t("year_from"), min_value=1990, max_value=2026, value=2018)
         with col3:
@@ -836,17 +846,20 @@ def require_access():
         return
     if st.session_state.get("access_granted"):
         return
-    st.title(t("gate_title"))
-    st.caption(t("gate_caption"))
-    with st.form("access_form"):
-        entered = st.text_input(t("gate_label"), type="password")
-        submitted = st.form_submit_button(t("gate_enter"))
-    if submitted:
-        if hmac.compare_digest(entered, password):
-            st.session_state["access_granted"] = True
-            st.rerun()
-        else:
-            st.error(t("gate_wrong"))
+    # Gate block lives in a keyed container so CSS can center the whole
+    # prompt + input block in the viewport (.st-key-gate).
+    with st.container(key="gate"):
+        st.title(t("gate_title"))
+        st.caption(t("gate_caption"))
+        with st.form("access_form"):
+            entered = st.text_input(t("gate_label"), type="password")
+            submitted = st.form_submit_button(t("gate_enter"))
+        if submitted:
+            if hmac.compare_digest(entered, password):
+                st.session_state["access_granted"] = True
+                st.rerun()
+            else:
+                st.error(t("gate_wrong"))
     st.stop()
 
 

@@ -50,6 +50,7 @@ STRINGS: dict[str, dict[str, str]] = {
     "topic_placeholder": {"zh": "输入研究主题 — 例如：大语言模型在科学发现中的推理",
                           "en": "Search research topic — e.g. LLM reasoning in scientific discovery"},
     "filter_papers": {"zh": "检索文献数", "en": "Papers to retrieve"},
+    "papers_unit": {"zh": "篇", "en": "papers"},
     "year_from": {"zh": "起始年份", "en": "Year from"},
     "year_to": {"zh": "结束年份", "en": "Year to"},
     "author_label": {"zh": "作者", "en": "Author"},
